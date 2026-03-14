@@ -69,37 +69,49 @@ parse_args() {
 }
 
 show_help() {
-    cat << EOF
-Mac Dev Machine Setup
-
-Usage: ./install.sh [OPTIONS]
-
-Options:
-    --package, -p <tier>   Package tier: light, standard, advanced
-    --yes, -y              Non-interactive mode, accept all defaults
-    --config, -c           Use config/user-config.yaml for customization
-    --skip-dotfiles        Skip dotfiles configuration
-    --show-packages        Show what's included in each package tier
-    --help, -h             Show this help message
-
-Package Tiers:
-    light      Essential tools only (~15 min, ~5GB)
-    standard   Recommended for most developers (~30 min, ~15GB)
-    advanced   Everything for power users (~60 min, ~30GB)
-
-Examples:
-    ./install.sh                        # Interactive mode
-    ./install.sh --show-packages        # See what's in each package
-    ./install.sh --package light        # Minimal installation
-    ./install.sh --package standard     # Recommended installation
-    ./install.sh --package advanced -y  # Full install, non-interactive
-    ./install.sh --config               # Use custom config file
-
-Other Scripts:
-    ./update.sh                         # Update installed tools
-    ./uninstall.sh                      # Remove tools
-
-EOF
+    echo ""
+    echo -e "${BLUE}Mac Dev Machine Setup${NC}"
+    echo -e "${BLUE}=====================${NC}"
+    echo ""
+    echo "Automated setup for macOS development machines."
+    echo "Installs dev tools, languages, DevOps tools, and more."
+    echo ""
+    echo -e "${CYAN}Usage:${NC}"
+    echo "  ./install.sh [OPTIONS]"
+    echo ""
+    echo -e "${CYAN}Options:${NC}"
+    echo "  --package, -p <tier>   Package tier: light, standard, advanced"
+    echo "  --yes, -y              Non-interactive mode, accept all defaults"
+    echo "  --config, -c           Use config/user-config.yaml for customization"
+    echo "  --skip-dotfiles        Skip dotfiles configuration"
+    echo "  --show-packages        Show what's included in each package tier"
+    echo "  --help, -h             Show this help message"
+    echo ""
+    echo -e "${CYAN}Package Tiers:${NC}"
+    echo -e "  ${GREEN}light${NC}      Essential tools only (~15 min, ~5GB)"
+    echo "             VS Code, Python, Node.js, Git, Chrome, Firefox"
+    echo ""
+    echo -e "  ${YELLOW}standard${NC}   Recommended for most developers (~30 min, ~15GB)"
+    echo "             + Cursor, Go, Java, Rust, Docker, Terraform, PostgreSQL"
+    echo ""
+    echo -e "  ${RED}advanced${NC}   Everything for power users (~60 min, ~30GB)"
+    echo "             + AI tools, Wireshark, all cloud CLIs, all databases"
+    echo ""
+    echo -e "${CYAN}Examples:${NC}"
+    echo "  ./install.sh --show-packages        # See what's in each package"
+    echo "  ./install.sh --package light        # Minimal installation"
+    echo "  ./install.sh --package standard     # Recommended installation"
+    echo "  ./install.sh --package advanced -y  # Full install, non-interactive"
+    echo ""
+    echo -e "${CYAN}Other Scripts:${NC}"
+    echo "  ./uninstall.sh         # Remove installed tools"
+    echo "  ./scan-installed.sh    # Scan and record installed packages"
+    echo "  ./update.sh            # Update installed tools"
+    echo ""
+    echo -e "${CYAN}More Info:${NC}"
+    echo "  State file: ~/.mac-dev-machine/installed.txt"
+    echo "  Docs: https://github.com/devopz-ai/Mac-dev-machine"
+    echo ""
 }
 
 # Show what's in each package
@@ -409,6 +421,300 @@ should_exclude() {
     return 1
 }
 
+# Define package lists
+get_package_formulas() {
+    local tier="$1"
+    local formulas=""
+
+    # Light tier formulas
+    local light_formulas="git gh pyenv nvm neovim jq bat ripgrep fzf htop"
+
+    # Standard tier adds these
+    local standard_formulas="git-lfs glab lazygit git-delta tmux starship go rustup-init maven gradle kubectl helm terraform yq eza fd zoxide wget httpie tree postgresql@16 redis"
+
+    # Advanced tier adds these
+    local advanced_formulas="rbenv ruby-build bun deno tig git-flow k9s kubectx minikube kind terragrunt tflint ansible awscli azure-cli pulumi trivy telnet nmap mtr mitmproxy mkcert ollama mysql sqlite ffmpeg imagemagick btop ncdu tldr thefuck shellcheck chromedriver geckodriver"
+
+    case "$tier" in
+        light) formulas="$light_formulas" ;;
+        standard) formulas="$light_formulas $standard_formulas" ;;
+        advanced) formulas="$light_formulas $standard_formulas $advanced_formulas" ;;
+    esac
+
+    echo "$formulas"
+}
+
+get_package_casks() {
+    local tier="$1"
+    local casks=""
+
+    # Light tier casks
+    local light_casks="iterm2 visual-studio-code google-chrome firefox"
+
+    # Standard tier adds these
+    local standard_casks="cursor pycharm-ce docker brave-browser dbeaver-community slack discord zoom rectangle postman the-unarchiver temurin"
+
+    # Advanced tier adds these
+    local advanced_casks="intellij-idea-ce jetbrains-toolbox goland webstorm datagrip zed sublime-text warp alacritty kitty lens google-cloud-sdk firefox-developer-edition arc chromium tor-browser opera wireshark ngrok lm-studio gpt4all jan msty mysql mongodb-compass tableplus pgadmin4 microsoft-teams whatsapp telegram signal raycast alfred notion obsidian insomnia bruno vlc bitwarden keepassxc stats hiddenbar monitorcontrol appcleaner"
+
+    case "$tier" in
+        light) casks="$light_casks" ;;
+        standard) casks="$light_casks $standard_casks" ;;
+        advanced) casks="$light_casks $standard_casks $advanced_casks" ;;
+    esac
+
+    echo "$casks"
+}
+
+# Sync all installed packages to state file (regardless of tier)
+sync_state_file() {
+    local state_dir="$HOME/.mac-dev-machine"
+    local state_file="$state_dir/installed.txt"
+    mkdir -p "$state_dir"
+
+    local timestamp=$(date +%Y-%m-%d_%H:%M:%S)
+
+    # All known formulas across all tiers
+    local all_formulas="git gh pyenv nvm neovim jq bat ripgrep fzf htop git-lfs glab lazygit git-delta tmux starship go rustup-init maven gradle kubectl helm terraform yq eza fd zoxide wget httpie tree postgresql@16 redis rbenv ruby-build bun deno tig git-flow k9s kubectx minikube kind terragrunt tflint ansible awscli azure-cli pulumi trivy telnet nmap mtr mitmproxy mkcert ollama mysql sqlite ffmpeg imagemagick btop ncdu tldr thefuck shellcheck chromedriver geckodriver openssl readline sqlite3 xz zlib tcl-tk pyenv-virtualenv"
+
+    # All known casks across all tiers
+    local all_casks="iterm2 visual-studio-code google-chrome firefox cursor pycharm-ce docker brave-browser dbeaver-community slack discord zoom rectangle postman the-unarchiver temurin intellij-idea-ce jetbrains-toolbox goland webstorm datagrip zed sublime-text warp alacritty kitty lens google-cloud-sdk firefox-developer-edition arc chromium tor-browser opera wireshark ngrok lm-studio gpt4all jan msty mongodb-compass tableplus pgadmin4 microsoft-teams whatsapp telegram signal raycast alfred notion obsidian insomnia bruno vlc bitwarden keepassxc stats hiddenbar monitorcontrol appcleaner"
+
+    # Sync formulas
+    for formula in $all_formulas; do
+        if brew list "$formula" &>/dev/null 2>&1; then
+            if ! grep -q "^formula|${formula}|" "$state_file" 2>/dev/null; then
+                echo "formula|${formula}|${formula}|${timestamp}" >> "$state_file"
+            fi
+        fi
+    done
+
+    # Sync casks with app name mapping
+    for cask in $all_casks; do
+        local is_installed=false
+        local display_name="$cask"
+
+        if brew list --cask "$cask" &>/dev/null 2>&1; then
+            is_installed=true
+        else
+            # Check /Applications folder
+            case "$cask" in
+                iterm2) [[ -d "/Applications/iTerm.app" ]] && is_installed=true && display_name="iTerm2" ;;
+                visual-studio-code) [[ -d "/Applications/Visual Studio Code.app" ]] && is_installed=true && display_name="Visual Studio Code" ;;
+                google-chrome) [[ -d "/Applications/Google Chrome.app" ]] && is_installed=true && display_name="Google Chrome" ;;
+                firefox) [[ -d "/Applications/Firefox.app" ]] && is_installed=true && display_name="Firefox" ;;
+                firefox-developer-edition) [[ -d "/Applications/Firefox Developer Edition.app" ]] && is_installed=true && display_name="Firefox Developer Edition" ;;
+                docker) [[ -d "/Applications/Docker.app" ]] && is_installed=true && display_name="Docker" ;;
+                slack) [[ -d "/Applications/Slack.app" ]] && is_installed=true && display_name="Slack" ;;
+                discord) [[ -d "/Applications/Discord.app" ]] && is_installed=true && display_name="Discord" ;;
+                zoom) [[ -d "/Applications/zoom.us.app" ]] && is_installed=true && display_name="Zoom" ;;
+                cursor) [[ -d "/Applications/Cursor.app" ]] && is_installed=true && display_name="Cursor" ;;
+                pycharm-ce) [[ -d "/Applications/PyCharm CE.app" ]] && is_installed=true && display_name="PyCharm CE" ;;
+                intellij-idea-ce) [[ -d "/Applications/IntelliJ IDEA CE.app" ]] && is_installed=true && display_name="IntelliJ IDEA CE" ;;
+                brave-browser) [[ -d "/Applications/Brave Browser.app" ]] && is_installed=true && display_name="Brave Browser" ;;
+                arc) [[ -d "/Applications/Arc.app" ]] && is_installed=true && display_name="Arc" ;;
+                notion) [[ -d "/Applications/Notion.app" ]] && is_installed=true && display_name="Notion" ;;
+                obsidian) [[ -d "/Applications/Obsidian.app" ]] && is_installed=true && display_name="Obsidian" ;;
+                postman) [[ -d "/Applications/Postman.app" ]] && is_installed=true && display_name="Postman" ;;
+                insomnia) [[ -d "/Applications/Insomnia.app" ]] && is_installed=true && display_name="Insomnia" ;;
+                dbeaver-community) [[ -d "/Applications/DBeaver.app" ]] && is_installed=true && display_name="DBeaver" ;;
+                tableplus) [[ -d "/Applications/TablePlus.app" ]] && is_installed=true && display_name="TablePlus" ;;
+                rectangle) [[ -d "/Applications/Rectangle.app" ]] && is_installed=true && display_name="Rectangle" ;;
+                raycast) [[ -d "/Applications/Raycast.app" ]] && is_installed=true && display_name="Raycast" ;;
+                alfred) [[ -d "/Applications/Alfred 5.app" ]] && is_installed=true && display_name="Alfred" ;;
+                vlc) [[ -d "/Applications/VLC.app" ]] && is_installed=true && display_name="VLC" ;;
+                whatsapp) [[ -d "/Applications/WhatsApp.app" ]] && is_installed=true && display_name="WhatsApp" ;;
+                telegram) [[ -d "/Applications/Telegram.app" ]] && is_installed=true && display_name="Telegram" ;;
+                signal) [[ -d "/Applications/Signal.app" ]] && is_installed=true && display_name="Signal" ;;
+                microsoft-teams) [[ -d "/Applications/Microsoft Teams.app" ]] && is_installed=true && display_name="Microsoft Teams" ;;
+                lm-studio) [[ -d "/Applications/LM Studio.app" ]] && is_installed=true && display_name="LM Studio" ;;
+                gpt4all) [[ -d "/Applications/GPT4All.app" ]] && is_installed=true && display_name="GPT4All" ;;
+                jan) [[ -d "/Applications/Jan.app" ]] && is_installed=true && display_name="Jan" ;;
+                wireshark) [[ -d "/Applications/Wireshark.app" ]] && is_installed=true && display_name="Wireshark" ;;
+                the-unarchiver) [[ -d "/Applications/The Unarchiver.app" ]] && is_installed=true && display_name="The Unarchiver" ;;
+                appcleaner) [[ -d "/Applications/AppCleaner.app" ]] && is_installed=true && display_name="AppCleaner" ;;
+                bitwarden) [[ -d "/Applications/Bitwarden.app" ]] && is_installed=true && display_name="Bitwarden" ;;
+                sublime-text) [[ -d "/Applications/Sublime Text.app" ]] && is_installed=true && display_name="Sublime Text" ;;
+                zed) [[ -d "/Applications/Zed.app" ]] && is_installed=true && display_name="Zed" ;;
+                warp) [[ -d "/Applications/Warp.app" ]] && is_installed=true && display_name="Warp" ;;
+                alacritty) [[ -d "/Applications/Alacritty.app" ]] && is_installed=true && display_name="Alacritty" ;;
+                kitty) [[ -d "/Applications/kitty.app" ]] && is_installed=true && display_name="Kitty" ;;
+                jetbrains-toolbox) [[ -d "/Applications/JetBrains Toolbox.app" ]] && is_installed=true && display_name="JetBrains Toolbox" ;;
+                goland) [[ -d "/Applications/GoLand.app" ]] && is_installed=true && display_name="GoLand" ;;
+                webstorm) [[ -d "/Applications/WebStorm.app" ]] && is_installed=true && display_name="WebStorm" ;;
+                datagrip) [[ -d "/Applications/DataGrip.app" ]] && is_installed=true && display_name="DataGrip" ;;
+                *) ;;
+            esac
+        fi
+
+        if $is_installed; then
+            if ! grep -q "^cask|${cask}|" "$state_file" 2>/dev/null; then
+                echo "cask|${cask}|${display_name}|${timestamp}" >> "$state_file"
+            fi
+        fi
+    done
+}
+
+# Pre-install scan - check what's already installed and sync state file
+pre_install_scan() {
+    log_section "Pre-Installation Scan"
+    log_info "Scanning system and syncing state file..."
+    echo ""
+
+    # First, sync ALL known packages to state file
+    sync_state_file
+
+    local formulas=$(get_package_formulas "$PACKAGE_TIER")
+    local casks=$(get_package_casks "$PACKAGE_TIER")
+    local state_file="$HOME/.mac-dev-machine/installed.txt"
+
+    # Counters and lists
+    local installed_formulas_count=0
+    local missing_formulas_count=0
+    local installed_casks_count=0
+    local missing_casks_count=0
+    local missing_formulas_list=""
+    local missing_casks_list=""
+    local installed_formulas_list=""
+    local installed_casks_list=""
+
+    # Check formulas (state file already synced by sync_state_file)
+    for formula in $formulas; do
+        if brew list "$formula" &>/dev/null 2>&1; then
+            ((installed_formulas_count++))
+            installed_formulas_list+="$formula "
+        else
+            ((missing_formulas_count++))
+            missing_formulas_list+="$formula "
+        fi
+    done
+
+    # Check casks and sync to state file
+    for cask in $casks; do
+        local is_installed=false
+        local display_name="$cask"
+
+        if brew list --cask "$cask" &>/dev/null 2>&1; then
+            is_installed=true
+        else
+            # Also check /Applications folder with proper app name mapping
+            case "$cask" in
+                iterm2) [[ -d "/Applications/iTerm.app" ]] && is_installed=true && display_name="iTerm2" ;;
+                visual-studio-code) [[ -d "/Applications/Visual Studio Code.app" ]] && is_installed=true && display_name="Visual Studio Code" ;;
+                google-chrome) [[ -d "/Applications/Google Chrome.app" ]] && is_installed=true && display_name="Google Chrome" ;;
+                firefox) [[ -d "/Applications/Firefox.app" ]] && is_installed=true && display_name="Firefox" ;;
+                firefox-developer-edition) [[ -d "/Applications/Firefox Developer Edition.app" ]] && is_installed=true && display_name="Firefox Developer Edition" ;;
+                docker) [[ -d "/Applications/Docker.app" ]] && is_installed=true && display_name="Docker" ;;
+                slack) [[ -d "/Applications/Slack.app" ]] && is_installed=true && display_name="Slack" ;;
+                discord) [[ -d "/Applications/Discord.app" ]] && is_installed=true && display_name="Discord" ;;
+                zoom) [[ -d "/Applications/zoom.us.app" ]] && is_installed=true && display_name="Zoom" ;;
+                cursor) [[ -d "/Applications/Cursor.app" ]] && is_installed=true && display_name="Cursor" ;;
+                pycharm-ce) [[ -d "/Applications/PyCharm CE.app" ]] && is_installed=true && display_name="PyCharm CE" ;;
+                intellij-idea-ce) [[ -d "/Applications/IntelliJ IDEA CE.app" ]] && is_installed=true && display_name="IntelliJ IDEA CE" ;;
+                brave-browser) [[ -d "/Applications/Brave Browser.app" ]] && is_installed=true && display_name="Brave Browser" ;;
+                arc) [[ -d "/Applications/Arc.app" ]] && is_installed=true && display_name="Arc" ;;
+                notion) [[ -d "/Applications/Notion.app" ]] && is_installed=true && display_name="Notion" ;;
+                obsidian) [[ -d "/Applications/Obsidian.app" ]] && is_installed=true && display_name="Obsidian" ;;
+                postman) [[ -d "/Applications/Postman.app" ]] && is_installed=true && display_name="Postman" ;;
+                insomnia) [[ -d "/Applications/Insomnia.app" ]] && is_installed=true && display_name="Insomnia" ;;
+                dbeaver-community) [[ -d "/Applications/DBeaver.app" ]] && is_installed=true && display_name="DBeaver" ;;
+                tableplus) [[ -d "/Applications/TablePlus.app" ]] && is_installed=true && display_name="TablePlus" ;;
+                rectangle) [[ -d "/Applications/Rectangle.app" ]] && is_installed=true && display_name="Rectangle" ;;
+                raycast) [[ -d "/Applications/Raycast.app" ]] && is_installed=true && display_name="Raycast" ;;
+                alfred) [[ -d "/Applications/Alfred 5.app" ]] && is_installed=true && display_name="Alfred" ;;
+                vlc) [[ -d "/Applications/VLC.app" ]] && is_installed=true && display_name="VLC" ;;
+                spotify) [[ -d "/Applications/Spotify.app" ]] && is_installed=true && display_name="Spotify" ;;
+                whatsapp) [[ -d "/Applications/WhatsApp.app" ]] && is_installed=true && display_name="WhatsApp" ;;
+                telegram) [[ -d "/Applications/Telegram.app" ]] && is_installed=true && display_name="Telegram" ;;
+                signal) [[ -d "/Applications/Signal.app" ]] && is_installed=true && display_name="Signal" ;;
+                microsoft-teams) [[ -d "/Applications/Microsoft Teams.app" ]] && is_installed=true && display_name="Microsoft Teams" ;;
+                lm-studio) [[ -d "/Applications/LM Studio.app" ]] && is_installed=true && display_name="LM Studio" ;;
+                gpt4all) [[ -d "/Applications/GPT4All.app" ]] && is_installed=true && display_name="GPT4All" ;;
+                jan) [[ -d "/Applications/Jan.app" ]] && is_installed=true && display_name="Jan" ;;
+                wireshark) [[ -d "/Applications/Wireshark.app" ]] && is_installed=true && display_name="Wireshark" ;;
+                the-unarchiver) [[ -d "/Applications/The Unarchiver.app" ]] && is_installed=true && display_name="The Unarchiver" ;;
+                appcleaner) [[ -d "/Applications/AppCleaner.app" ]] && is_installed=true && display_name="AppCleaner" ;;
+                bitwarden) [[ -d "/Applications/Bitwarden.app" ]] && is_installed=true && display_name="Bitwarden" ;;
+                sublime-text) [[ -d "/Applications/Sublime Text.app" ]] && is_installed=true && display_name="Sublime Text" ;;
+                zed) [[ -d "/Applications/Zed.app" ]] && is_installed=true && display_name="Zed" ;;
+                warp) [[ -d "/Applications/Warp.app" ]] && is_installed=true && display_name="Warp" ;;
+                alacritty) [[ -d "/Applications/Alacritty.app" ]] && is_installed=true && display_name="Alacritty" ;;
+                kitty) [[ -d "/Applications/kitty.app" ]] && is_installed=true && display_name="Kitty" ;;
+                *) ;;
+            esac
+        fi
+
+        if $is_installed; then
+            ((installed_casks_count++))
+            installed_casks_list+="$cask "
+        else
+            ((missing_casks_count++))
+            missing_casks_list+="$cask "
+        fi
+    done
+
+    # Get total count from state file
+    local state_total=$(wc -l < "$state_file" 2>/dev/null | tr -d ' ' || echo "0")
+
+    # Display results
+    local total_installed=$((installed_formulas_count + installed_casks_count))
+    local total_missing=$((missing_formulas_count + missing_casks_count))
+    local total=$((total_installed + total_missing))
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  SCAN RESULTS - Package: $PACKAGE_TIER${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "  ${GREEN}Already installed:${NC} $total_installed packages (in this tier)"
+    echo -e "  ${YELLOW}Will be installed:${NC} $total_missing packages"
+    echo -e "  ${CYAN}Total in package:${NC}  $total packages"
+    echo ""
+    echo -e "  ${BLUE}State file:${NC} $state_file ($state_total total tracked)"
+    echo ""
+
+    if [[ $installed_formulas_count -gt 0 ]]; then
+        echo -e "${GREEN}Installed formulas ($installed_formulas_count):${NC}"
+        echo "$installed_formulas_list" | tr ' ' '\n' | grep -v '^$' | sort | pr -4 -t -w 80 | sed 's/^/  /'
+        echo ""
+    fi
+
+    if [[ $installed_casks_count -gt 0 ]]; then
+        echo -e "${GREEN}Installed casks ($installed_casks_count):${NC}"
+        echo "$installed_casks_list" | tr ' ' '\n' | grep -v '^$' | sort | pr -4 -t -w 80 | sed 's/^/  /'
+        echo ""
+    fi
+
+    if [[ $missing_formulas_count -gt 0 ]]; then
+        echo -e "${YELLOW}Formulas to install ($missing_formulas_count):${NC}"
+        echo "$missing_formulas_list" | tr ' ' '\n' | grep -v '^$' | sort | pr -4 -t -w 80 | sed 's/^/  /'
+        echo ""
+    fi
+
+    if [[ $missing_casks_count -gt 0 ]]; then
+        echo -e "${YELLOW}Casks to install ($missing_casks_count):${NC}"
+        echo "$missing_casks_list" | tr ' ' '\n' | grep -v '^$' | sort | pr -4 -t -w 80 | sed 's/^/  /'
+        echo ""
+    fi
+
+    if [[ $total_missing -eq 0 ]]; then
+        echo -e "${GREEN}Everything is already installed!${NC}"
+        echo ""
+        if [[ "$AUTO_YES" != true ]]; then
+            read -p "Run anyway to verify and update configurations? [y/N]: " response
+            case "$response" in
+                [yY][eE][sS]|[yY]) return 0 ;;
+                *) log_info "Nothing to install."; exit 0 ;;
+            esac
+        fi
+    fi
+
+    # Store for later use
+    export MISSING_FORMULAS="$missing_formulas_list"
+    export MISSING_CASKS="$missing_casks_list"
+
+    log_success "State file synced with $total_installed installed packages"
+}
+
 # Confirmation prompt
 confirm_installation() {
     if [[ "$AUTO_YES" == true ]]; then
@@ -456,6 +762,12 @@ run_module() {
 
 # Main installation function
 main() {
+    # Show help if no arguments
+    if [[ $# -eq 0 ]]; then
+        show_help
+        exit 0
+    fi
+
     # Handle --show-packages early
     parse_args "$@"
 
@@ -487,6 +799,9 @@ main() {
 
     # Select package
     select_package
+
+    # Pre-install scan - show what will be installed
+    pre_install_scan
 
     # Confirm
     confirm_installation

@@ -34,18 +34,27 @@ A comprehensive automated setup for macOS development machines. This repository 
 git clone https://github.com/devopz-ai/Mac-dev-machine.git
 cd Mac-dev-machine
 
-# Make executable and run
-chmod +x install.sh
+# Make executable
+chmod +x install.sh uninstall.sh scan-installed.sh
+
+# See help and available options
 ./install.sh
+
+# See what's in each package tier
+./install.sh --show-packages
+
+# Install a package
+./install.sh --package standard
 ```
 
-The script will:
+The installation will:
 1. Detect your macOS version and architecture
-2. Ask you to select a package tier (light/standard/advanced)
-3. Install all tools for that package
-4. Configure dotfiles (with backup of existing ones)
-5. Save installation state for updates/uninstalls
-6. Validate the installation
+2. Pre-scan what's already installed
+3. Show what will be installed vs what's already present
+4. Sync state file with current system state
+5. Install missing tools for your selected package
+6. Configure dotfiles (with backup of existing ones)
+7. Validate the installation
 
 ### See What's Available
 
@@ -201,7 +210,7 @@ Then run with your config:
 The uninstall script tracks what was installed and only removes those packages.
 
 ```bash
-# Interactive mode (recommended)
+# Show help
 ./uninstall.sh
 
 # Show what's installed
@@ -209,6 +218,9 @@ The uninstall script tracks what was installed and only removes those packages.
 
 # Show detailed package list
 ./uninstall.sh --detailed
+
+# Interactive menu mode
+./uninstall.sh --interactive
 
 # Force rescan of installed packages
 ./uninstall.sh --scan
@@ -221,6 +233,22 @@ The uninstall script tracks what was installed and only removes those packages.
 
 # Remove all tools (careful!)
 ./uninstall.sh --all
+```
+
+### Scan Installed Packages
+
+```bash
+# Show help
+./scan-installed.sh
+
+# Run scan to record installed packages
+./scan-installed.sh --run
+
+# Show current state
+./scan-installed.sh --show
+
+# Clear and rescan
+./scan-installed.sh --clear --run
 ```
 
 **Interactive Menu Options:**

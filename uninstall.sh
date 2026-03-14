@@ -350,23 +350,46 @@ force_scan() {
 
 # Usage help
 usage() {
-    echo "Usage: $0 [OPTIONS]"
     echo ""
-    echo "Options:"
-    echo "  --list, -l      Show installed packages"
-    echo "  --detailed, -d  Show detailed package list"
-    echo "  --scan, -s      Force rescan of installed packages"
-    echo "  --all, -a       Uninstall everything"
-    echo "  --type TYPE     Uninstall by type (formula, cask, npm, pip)"
-    echo "  --help, -h      Show this help"
+    echo -e "${BLUE}Mac Dev Machine - Uninstall Script${NC}"
+    echo -e "${BLUE}===================================${NC}"
     echo ""
-    echo "Interactive mode (no options):"
-    echo "  Run without options for interactive menu"
+    echo "Remove packages installed by Mac Dev Machine setup."
+    echo "Tracks installations in ~/.mac-dev-machine/installed.txt"
+    echo ""
+    echo -e "${CYAN}Usage:${NC}"
+    echo "  ./uninstall.sh [OPTIONS]"
+    echo ""
+    echo -e "${CYAN}Options:${NC}"
+    echo "  --list, -l          Show installed packages summary"
+    echo "  --detailed, -d      Show detailed package list"
+    echo "  --scan, -s          Force rescan of installed packages"
+    echo "  --interactive, -i   Interactive menu mode"
+    echo "  --all, -a           Uninstall everything (requires confirmation)"
+    echo "  --type, -t TYPE     Uninstall by type: formula, cask, npm, pip"
+    echo "  --help, -h          Show this help"
+    echo ""
+    echo -e "${CYAN}Examples:${NC}"
+    echo "  ./uninstall.sh --list           # Show what's tracked"
+    echo "  ./uninstall.sh --detailed       # Show full package list"
+    echo "  ./uninstall.sh --interactive    # Interactive menu"
+    echo "  ./uninstall.sh --type cask      # Remove all casks"
+    echo "  ./uninstall.sh --all            # Remove everything"
+    echo ""
+    echo -e "${CYAN}State File:${NC}"
+    echo "  ~/.mac-dev-machine/installed.txt"
+    echo ""
 }
 
 # Main
 main() {
     print_header
+
+    # Show help if no arguments
+    if [[ $# -eq 0 ]]; then
+        usage
+        exit 0
+    fi
 
     # Parse arguments
     case "${1:-}" in
@@ -393,12 +416,12 @@ main() {
             uninstall_by_type "${2:-}"
             exit 0
             ;;
+        --interactive|-i)
+            # Continue to interactive mode below
+            ;;
         --help|-h)
             usage
             exit 0
-            ;;
-        "")
-            # Interactive mode
             ;;
         *)
             log_error "Unknown option: $1"
