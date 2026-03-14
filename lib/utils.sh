@@ -99,12 +99,12 @@ install_formula() {
     fi
 
     log_step "Installing $name..."
-    if brew install "$formula"; then
+    if brew install "$formula" 2>&1; then
         log_success "$name installed"
         return 0
     else
-        log_error "Failed to install $name"
-        return 1
+        log_warning "Could not install $name (may need manual installation)"
+        return 0  # Return 0 to continue installation
     fi
 }
 
@@ -113,18 +113,78 @@ install_cask() {
     local cask="$1"
     local name="${2:-$cask}"
 
+    # Check if already installed via Homebrew
     if cask_installed "$cask"; then
         log_info "$name is already installed"
         return 0
     fi
 
+    # Check if app already exists in /Applications (installed outside Homebrew)
+    # Map common cask names to app names
+    local app_name="$name"
+    case "$cask" in
+        iterm2) app_name="iTerm" ;;
+        visual-studio-code) app_name="Visual Studio Code" ;;
+        google-chrome) app_name="Google Chrome" ;;
+        firefox) app_name="Firefox" ;;
+        firefox-developer-edition) app_name="Firefox Developer Edition" ;;
+        brave-browser) app_name="Brave Browser" ;;
+        microsoft-edge) app_name="Microsoft Edge" ;;
+        docker) app_name="Docker" ;;
+        slack) app_name="Slack" ;;
+        discord) app_name="Discord" ;;
+        zoom) app_name="zoom.us" ;;
+        spotify) app_name="Spotify" ;;
+        notion) app_name="Notion" ;;
+        obsidian) app_name="Obsidian" ;;
+        postman) app_name="Postman" ;;
+        insomnia) app_name="Insomnia" ;;
+        dbeaver-community) app_name="DBeaver" ;;
+        tableplus) app_name="TablePlus" ;;
+        pycharm-ce) app_name="PyCharm CE" ;;
+        intellij-idea-ce) app_name="IntelliJ IDEA CE" ;;
+        webstorm) app_name="WebStorm" ;;
+        goland) app_name="GoLand" ;;
+        cursor) app_name="Cursor" ;;
+        sublime-text) app_name="Sublime Text" ;;
+        vlc) app_name="VLC" ;;
+        whatsapp) app_name="WhatsApp" ;;
+        telegram) app_name="Telegram" ;;
+        signal) app_name="Signal" ;;
+        microsoft-teams) app_name="Microsoft Teams" ;;
+        lm-studio) app_name="LM Studio" ;;
+        gpt4all) app_name="GPT4All" ;;
+        jan) app_name="Jan" ;;
+        arc) app_name="Arc" ;;
+        raycast) app_name="Raycast" ;;
+        rectangle) app_name="Rectangle" ;;
+        alfred) app_name="Alfred 5" ;;
+        the-unarchiver) app_name="The Unarchiver" ;;
+        appcleaner) app_name="AppCleaner" ;;
+        figma) app_name="Figma" ;;
+        stats) app_name="Stats" ;;
+        bitwarden) app_name="Bitwarden" ;;
+        keepassxc) app_name="KeePassXC" ;;
+        mongodb-compass) app_name="MongoDB Compass" ;;
+        pgadmin4) app_name="pgAdmin 4" ;;
+        jetbrains-toolbox) app_name="JetBrains Toolbox" ;;
+        zed) app_name="Zed" ;;
+        wireshark) app_name="Wireshark" ;;
+        ngrok) app_name="ngrok" ;;
+    esac
+
+    if [[ -d "/Applications/${app_name}.app" ]] || [[ -d "$HOME/Applications/${app_name}.app" ]]; then
+        log_info "$name is already installed (found in Applications)"
+        return 0
+    fi
+
     log_step "Installing $name..."
-    if brew install --cask "$cask"; then
+    if brew install --cask "$cask" 2>&1; then
         log_success "$name installed"
         return 0
     else
-        log_error "Failed to install $name"
-        return 1
+        log_warning "Could not install $name (may already exist or require manual install)"
+        return 0  # Return 0 to continue installation
     fi
 }
 

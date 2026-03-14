@@ -4,7 +4,7 @@
 # Installs AI coding assistants, LLM tools, and ML frameworks
 #
 
-set -e
+set +e  # Continue on errors
 
 SCRIPT_DIR="${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 source "${SCRIPT_DIR}/lib/utils.sh"

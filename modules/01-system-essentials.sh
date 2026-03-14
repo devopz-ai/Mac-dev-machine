@@ -4,7 +4,7 @@
 # Installs Homebrew and Xcode Command Line Tools
 #
 
-set -e
+set +e  # Continue on errors
 
 # Source utilities if not already sourced
 SCRIPT_DIR="${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"

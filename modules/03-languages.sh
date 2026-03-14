@@ -4,7 +4,7 @@
 # Installs Python, Node.js, Java, Go, Rust, Ruby
 #
 
-set -e
+set +e  # Continue on errors
 
 SCRIPT_DIR="${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 source "${SCRIPT_DIR}/lib/utils.sh"
@@ -19,6 +19,10 @@ install_python() {
     install_formula "pyenv" "pyenv"
     install_formula "pyenv-virtualenv" "pyenv-virtualenv"
 
+    # Install build dependencies first
+    log_step "Installing Python build dependencies..."
+    brew install openssl readline sqlite3 xz zlib tcl-tk 2>/dev/null || true
+
     # Configure pyenv in shell
     local shell_config="$HOME/.zshrc"
     append_if_missing "$shell_config" ""
@@ -28,34 +32,48 @@ install_python() {
     append_if_missing "$shell_config" 'eval "$(pyenv init -)"'
     append_if_missing "$shell_config" 'eval "$(pyenv virtualenv-init -)"'
 
-    # Initialize pyenv for current session
+    # Initialize pyenv for current session (IMPORTANT: must do this before pyenv commands)
     export PYENV_ROOT="$HOME/.pyenv"
-    export PATH="$PYENV_ROOT/bin:$PATH"
+    export PATH="$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH"
     eval "$(pyenv init -)" 2>/dev/null || true
+    eval "$(pyenv init --path)" 2>/dev/null || true
 
-    # Install latest Python
-    local python_version="3.12.2"
-    log_step "Installing Python $python_version..."
+    # Get latest Python 3.12.x version or use default
+    local python_version="3.12"
+    log_step "Installing Python $python_version (latest patch version)..."
 
-    if pyenv versions | grep -q "$python_version"; then
-        log_info "Python $python_version already installed"
+    # Use -s flag to skip if already installed
+    if pyenv install -s "$python_version" 2>&1; then
+        log_success "Python installed via pyenv"
     else
-        # Install build dependencies
-        brew install openssl readline sqlite3 xz zlib tcl-tk 2>/dev/null || true
-
-        pyenv install "$python_version"
+        log_warning "Could not install Python via pyenv, will use system Python"
     fi
 
-    pyenv global "$python_version"
-    log_success "Python $python_version set as global default"
+    # Set global version
+    pyenv global "$python_version" 2>/dev/null || pyenv global system
+
+    # Rehash to update shims
+    pyenv rehash 2>/dev/null || true
+
+    # Verify Python is available
+    if command -v python &>/dev/null; then
+        log_success "Python $(python --version 2>&1) set as default"
+    elif command -v python3 &>/dev/null; then
+        log_info "Python available as 'python3': $(python3 --version 2>&1)"
+        # Create alias for python -> python3
+        append_if_missing "$shell_config" 'alias python="python3"'
+        append_if_missing "$shell_config" 'alias pip="pip3"'
+    fi
 
     # Upgrade pip
     log_step "Upgrading pip..."
-    pip install --upgrade pip setuptools wheel
+    python -m pip install --upgrade pip setuptools wheel 2>/dev/null || \
+    python3 -m pip install --upgrade pip setuptools wheel 2>/dev/null || true
 
     # Install essential Python packages
     log_step "Installing essential Python packages..."
-    pip install pipx poetry black flake8 mypy pytest ipython jupyter
+    python -m pip install pipx poetry black flake8 mypy pytest ipython 2>/dev/null || \
+    python3 -m pip install pipx poetry black flake8 mypy pytest ipython 2>/dev/null || true
 
     log_success "Python setup completed"
 }
