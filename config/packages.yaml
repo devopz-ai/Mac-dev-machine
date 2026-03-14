@@ -1,0 +1,415 @@
+# Mac Dev Machine - Package Tiers
+# This file defines what tools are included in each package tier
+#
+# Usage: ./install.sh --package light|standard|advanced
+#
+# Users can also create a custom config at config/user-config.yaml
+# to exclude specific tools they don't want
+
+# ==============================================================================
+# LIGHT PACKAGE - Essential tools for basic development
+# Best for: Minimalists, limited disk space, specific needs
+# Estimated install time: ~15 minutes
+# Disk space: ~5GB
+# ==============================================================================
+light:
+  description: "Essential tools for basic development"
+  includes:
+    system:
+      - homebrew
+      - xcode-cli
+      - rosetta2  # Apple Silicon only
+
+    terminal:
+      - iterm2
+
+    editors:
+      - visual-studio-code
+      - neovim
+
+    languages:
+      - python      # via pyenv
+      - nodejs      # via nvm
+
+    git:
+      - git
+      - gh          # GitHub CLI
+
+    cli_tools:
+      - jq
+      - bat
+      - ripgrep
+      - fzf
+      - htop
+
+    browsers:
+      - google-chrome
+      - firefox
+
+# ==============================================================================
+# STANDARD PACKAGE - Recommended for most developers
+# Best for: Full-stack developers, everyday development
+# Estimated install time: ~30 minutes
+# Disk space: ~15GB
+# ==============================================================================
+standard:
+  description: "Recommended tools for most developers"
+  includes:
+    # Everything from Light, plus:
+    extends: light
+
+    terminal:
+      - iterm2
+      - tmux
+      - starship
+      - oh-my-zsh
+
+    editors:
+      - visual-studio-code
+      - cursor
+      - neovim
+      - pycharm-ce
+
+    languages:
+      - python
+      - nodejs
+      - typescript
+      - go
+      - java
+      - rust
+
+    git:
+      - git
+      - git-lfs
+      - gh
+      - glab
+      - lazygit
+      - git-delta
+
+    devops:
+      - docker
+      - kubectl
+      - helm
+      - terraform
+
+    cli_tools:
+      - jq
+      - yq
+      - bat
+      - eza
+      - ripgrep
+      - fd
+      - fzf
+      - zoxide
+      - htop
+      - tree
+      - wget
+      - httpie
+
+    browsers:
+      - google-chrome
+      - firefox
+      - brave-browser
+
+    databases:
+      - postgresql
+      - redis
+      - dbeaver-community
+
+    communication:
+      - slack
+      - discord
+      - zoom
+
+    apps:
+      - rectangle
+      - postman
+      - the-unarchiver
+
+# ==============================================================================
+# ADVANCED PACKAGE - Everything for power users
+# Best for: DevOps engineers, AI/ML developers, full setup
+# Estimated install time: ~60 minutes
+# Disk space: ~30GB+
+# ==============================================================================
+advanced:
+  description: "Complete setup for power users and DevOps engineers"
+  includes:
+    # Everything from Standard, plus:
+    extends: standard
+
+    terminal:
+      - iterm2
+      - tmux
+      - starship
+      - oh-my-zsh
+      - zsh-autosuggestions
+      - zsh-syntax-highlighting
+
+    editors:
+      - visual-studio-code
+      - cursor
+      - neovim
+      - pycharm-ce
+      - intellij-idea-ce
+      - jetbrains-toolbox
+      - zed
+      - sublime-text
+
+    languages:
+      - python
+      - nodejs
+      - typescript
+      - go
+      - java
+      - rust
+      - ruby
+      - bun
+      - deno
+
+    git:
+      - git
+      - git-lfs
+      - gh
+      - glab
+      - lazygit
+      - git-delta
+      - tig
+      - git-flow
+
+    devops:
+      - docker
+      - docker-compose
+      - kubectl
+      - k9s
+      - helm
+      - kustomize
+      - kubectx
+      - minikube
+      - kind
+      - terraform
+      - terragrunt
+      - tflint
+      - ansible
+      - awscli
+      - azure-cli
+      - google-cloud-sdk
+      - vault
+      - trivy
+
+    network:
+      - telnet
+      - nmap
+      - wireshark
+      - mtr
+      - ngrok
+      - mitmproxy
+      - mkcert
+
+    ai_tools:
+      - ollama
+      - lm-studio
+      - gpt4all
+      - jan
+      - aider-chat
+      - open-interpreter
+      - litellm
+      - langchain
+      - openai
+      - anthropic
+
+    cli_tools:
+      - jq
+      - yq
+      - bat
+      - eza
+      - ripgrep
+      - fd
+      - fzf
+      - zoxide
+      - htop
+      - btop
+      - tree
+      - wget
+      - httpie
+      - tldr
+      - shellcheck
+      - dust
+      - ncdu
+
+    browsers:
+      - google-chrome
+      - firefox
+      - firefox-developer-edition
+      - brave-browser
+      - arc
+      - chromium
+
+    databases:
+      - postgresql
+      - mysql
+      - redis
+      - mongodb-community
+      - sqlite
+      - dbeaver-community
+      - tableplus
+      - mongodb-compass
+
+    communication:
+      - slack
+      - discord
+      - whatsapp
+      - telegram
+      - zoom
+      - microsoft-teams
+
+    apps:
+      - rectangle
+      - raycast
+      - postman
+      - insomnia
+      - notion
+      - obsidian
+      - the-unarchiver
+      - appcleaner
+      - vlc
+      - stats
+      - bitwarden
+      - figma
+
+# ==============================================================================
+# Tool Details - Installation commands and verification
+# ==============================================================================
+tool_details:
+  # Homebrew formulae (brew install <name>)
+  formulae:
+    - git
+    - git-lfs
+    - gh
+    - glab
+    - lazygit
+    - git-delta
+    - tig
+    - git-flow
+    - pyenv
+    - nvm
+    - go
+    - rustup-init
+    - rbenv
+    - bun
+    - deno
+    - tmux
+    - starship
+    - neovim
+    - jq
+    - yq
+    - bat
+    - eza
+    - ripgrep
+    - fd
+    - fzf
+    - zoxide
+    - htop
+    - btop
+    - tree
+    - wget
+    - httpie
+    - tldr
+    - shellcheck
+    - dust
+    - ncdu
+    - kubernetes-cli
+    - k9s
+    - helm
+    - kustomize
+    - kubectx
+    - minikube
+    - kind
+    - terraform
+    - terragrunt
+    - tflint
+    - ansible
+    - awscli
+    - azure-cli
+    - vault
+    - trivy
+    - telnet
+    - nmap
+    - mtr
+    - mitmproxy
+    - mkcert
+    - ollama
+    - postgresql@16
+    - mysql
+    - redis
+    - sqlite
+    - ffmpeg
+    - imagemagick
+
+  # Homebrew casks (brew install --cask <name>)
+  casks:
+    - iterm2
+    - visual-studio-code
+    - cursor
+    - pycharm-ce
+    - intellij-idea-ce
+    - jetbrains-toolbox
+    - zed
+    - sublime-text
+    - docker
+    - google-chrome
+    - firefox
+    - firefox-developer-edition
+    - brave-browser
+    - arc
+    - chromium
+    - wireshark
+    - ngrok
+    - lm-studio
+    - gpt4all
+    - jan
+    - dbeaver-community
+    - tableplus
+    - mongodb-compass
+    - slack
+    - discord
+    - whatsapp
+    - telegram
+    - zoom
+    - microsoft-teams
+    - rectangle
+    - raycast
+    - postman
+    - insomnia
+    - notion
+    - obsidian
+    - the-unarchiver
+    - appcleaner
+    - vlc
+    - stats
+    - bitwarden
+    - figma
+    - google-cloud-sdk
+    - temurin
+
+  # Pip packages (pip install <name>)
+  pip:
+    - aider-chat
+    - open-interpreter
+    - shell-gpt
+    - litellm
+    - langchain
+    - openai
+    - anthropic
+    - chromadb
+    - mycli
+    - pgcli
+
+  # NPM global packages (npm install -g <name>)
+  npm:
+    - typescript
+    - ts-node
+    - yarn
+    - pnpm
+    - playwright
+    - puppeteer

@@ -1,0 +1,110 @@
+# Mac Dev Machine - User Configuration
+# =====================================
+#
+# Copy this file to 'user-config.yaml' and customize it:
+#   cp config/user-config.yaml.example config/user-config.yaml
+#
+# This file lets you:
+# 1. Exclude tools you don't want
+# 2. Add custom tools
+# 3. Set preferences
+#
+
+# ------------------------------------------------------------------------------
+# Package Selection
+# Options: light, standard, advanced
+# ------------------------------------------------------------------------------
+package: standard
+
+# ------------------------------------------------------------------------------
+# Tools to EXCLUDE from installation
+# List any tool names you don't want installed
+# ------------------------------------------------------------------------------
+exclude:
+  # Editors I don't use
+  # - sublime-text
+  # - zed
+
+  # Languages I don't need
+  # - ruby
+  # - rust
+  # - java
+
+  # Communication apps (I use web versions)
+  # - slack
+  # - discord
+  # - whatsapp
+  # - telegram
+  # - microsoft-teams
+
+  # Browsers (I only need Chrome)
+  # - firefox
+  # - brave-browser
+  # - arc
+  # - opera
+
+  # DevOps tools I don't need
+  # - ansible
+  # - azure-cli
+  # - google-cloud-sdk
+
+  # AI tools (if you don't do AI/ML)
+  # - ollama
+  # - lm-studio
+  # - gpt4all
+  # - jan
+
+  # Database GUIs (I prefer CLI)
+  # - dbeaver-community
+  # - tableplus
+  # - mongodb-compass
+
+# ------------------------------------------------------------------------------
+# Additional tools to INCLUDE (on top of selected package)
+# ------------------------------------------------------------------------------
+include:
+  formulae: []
+    # - some-formula
+    # - another-formula
+
+  casks: []
+    # - some-app
+    # - another-app
+
+  pip: []
+    # - some-package
+
+  npm: []
+    # - some-npm-package
+
+# ------------------------------------------------------------------------------
+# Preferences
+# ------------------------------------------------------------------------------
+preferences:
+  # Skip dotfiles configuration
+  skip_dotfiles: false
+
+  # Default Python version (for pyenv)
+  python_version: "3.12"
+
+  # Default Node.js version (for nvm)
+  node_version: "lts"
+
+  # Install VS Code extensions
+  install_vscode_extensions: true
+
+  # Install fonts
+  install_fonts: true
+
+  # Start services after installation (PostgreSQL, Redis, etc.)
+  start_services: false
+
+# ------------------------------------------------------------------------------
+# Git Configuration (used for .gitconfig)
+# Leave empty to configure manually later
+# ------------------------------------------------------------------------------
+git:
+  name: ""
+  email: ""
+  default_branch: "main"
+  editor: "code --wait"  # or "vim", "nano", etc.

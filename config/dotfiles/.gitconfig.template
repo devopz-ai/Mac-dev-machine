@@ -1,0 +1,156 @@
+# ==============================================================================
+# Git Configuration
+# Added by: https://github.com/devopz-ai/Mac-dev-machine
+# ==============================================================================
+#
+# IMPORTANT: Update [user] section with your name and email!
+#
+# To set your credentials:
+#   git config --global user.name "Your Name"
+#   git config --global user.email "you@example.com"
+#
+
+[user]
+    # UPDATE THESE VALUES:
+    name = Your Name
+    email = you@example.com
+
+[init]
+    # Default branch name for new repositories
+    defaultBranch = main
+
+[core]
+    # Default editor for commit messages
+    # Options: code --wait, vim, nano, subl -n -w
+    editor = code --wait
+
+    # Handle line endings
+    autocrlf = input
+
+    # Improve diff output
+    pager = delta
+
+    # Global gitignore
+    excludesfile = ~/.gitignore_global
+
+[pull]
+    # How to handle pulls
+    # Options: false (merge), true (rebase)
+    rebase = false
+
+[push]
+    # Push current branch by default
+    default = current
+
+    # Automatically set up tracking
+    autoSetupRemote = true
+
+[fetch]
+    # Remove deleted remote branches
+    prune = true
+
+[merge]
+    # Include summary in merge commits
+    log = true
+
+    # Conflict style
+    conflictstyle = diff3
+
+[diff]
+    # Better diff algorithm
+    algorithm = histogram
+
+    # Color moved lines differently
+    colorMoved = default
+
+[interactive]
+    # Use delta for interactive diffs
+    diffFilter = delta --color-only
+
+[delta]
+    # Delta configuration (better diffs)
+    navigate = true
+    light = false
+    line-numbers = true
+    side-by-side = true
+
+[color]
+    ui = auto
+
+[alias]
+    # Status shortcuts
+    st = status
+    s = status -sb
+
+    # Branch shortcuts
+    br = branch
+    co = checkout
+    cb = checkout -b
+
+    # Commit shortcuts
+    ci = commit
+    cm = commit -m
+    ca = commit --amend
+    can = commit --amend --no-edit
+
+    # Diff shortcuts
+    df = diff
+    dfs = diff --staged
+    dt = difftool
+
+    # Log shortcuts
+    lg = log --oneline --graph --decorate
+    ll = log --oneline -10
+    last = log -1 HEAD --stat
+    history = log --pretty=format:'%C(yellow)%h%Creset %ad | %s%d [%an]' --graph --date=short
+
+    # Reset shortcuts
+    unstage = reset HEAD --
+    undo = reset --soft HEAD~1
+
+    # Stash shortcuts
+    ss = stash
+    sp = stash pop
+    sl = stash list
+
+    # Remote shortcuts
+    pl = pull
+    ps = push
+    pf = push --force-with-lease
+
+    # Show aliases
+    aliases = config --get-regexp alias
+
+    # Useful commands
+    contributors = shortlog -sn
+    branches = branch -a
+    tags = tag -l
+    remotes = remote -v
+
+    # Clean up merged branches
+    cleanup = "!git branch --merged | grep -v '\\*\\|main\\|master' | xargs -n 1 git branch -d"
+
+    # Show what I've done today
+    today = log --since=midnight --author='Your Name' --oneline
+
+    # Find commits by message
+    find = "!git log --all --oneline | grep"
+
+[credential]
+    # Cache credentials (macOS Keychain)
+    helper = osxkeychain
+
+[filter "lfs"]
+    # Git LFS configuration
+    clean = git-lfs clean -- %f
+    smudge = git-lfs smudge -- %f
+    process = git-lfs filter-process
+    required = true
+
+[rerere]
+    # Remember how you resolved conflicts
+    enabled = true
+
+[help]
+    # Autocorrect typos (wait 1 second before executing)
+    autocorrect = 10

@@ -1,0 +1,109 @@
+# ==============================================================================
+# Mac Dev Machine - Installation State
+# ==============================================================================
+#
+# This file is auto-generated and tracks what has been installed.
+# DO NOT EDIT MANUALLY unless you know what you're doing.
+#
+# The install.sh, update.sh, and uninstall.sh scripts use this file to:
+# - Know what is currently installed
+# - Track versions for updates
+# - Know what to uninstall
+#
+# Location: ~/.mac-dev-machine-state.yaml
+#
+
+# Installation metadata
+metadata:
+  installed_at: "2024-01-15T10:30:00Z"
+  updated_at: "2024-01-15T10:30:00Z"
+  package_tier: "standard"  # light, standard, or advanced
+  macos_version: "14.2.1"
+  architecture: "arm64"  # or x86_64
+
+# Installed tools with versions
+installed:
+  # System
+  homebrew:
+    version: "4.2.0"
+    installed_at: "2024-01-15T10:30:00Z"
+
+  # Formulae
+  formulae:
+    git:
+      version: "2.43.0"
+      installed_at: "2024-01-15T10:30:00Z"
+    gh:
+      version: "2.40.0"
+      installed_at: "2024-01-15T10:30:00Z"
+    pyenv:
+      version: "2.3.35"
+      installed_at: "2024-01-15T10:30:00Z"
+    # ... more formulae
+
+  # Casks (GUI applications)
+  casks:
+    visual-studio-code:
+      version: "1.85.0"
+      installed_at: "2024-01-15T10:30:00Z"
+    docker:
+      version: "4.26.0"
+      installed_at: "2024-01-15T10:30:00Z"
+    google-chrome:
+      version: "120.0"
+      installed_at: "2024-01-15T10:30:00Z"
+    # ... more casks
+
+  # Languages with their versions
+  languages:
+    python:
+      manager: "pyenv"
+      version: "3.12.1"
+      installed_at: "2024-01-15T10:30:00Z"
+    nodejs:
+      manager: "nvm"
+      version: "20.10.0"
+      installed_at: "2024-01-15T10:30:00Z"
+    java:
+      version: "21.0.1"
+      installed_at: "2024-01-15T10:30:00Z"
+    go:
+      version: "1.21.5"
+      installed_at: "2024-01-15T10:30:00Z"
+    rust:
+      version: "1.75.0"
+      installed_at: "2024-01-15T10:30:00Z"
+
+  # Pip packages
+  pip:
+    - name: "aider-chat"
+      version: "0.18.0"
+    - name: "litellm"
+      version: "1.10.0"
+    # ... more pip packages
+
+  # NPM global packages
+  npm:
+    - name: "typescript"
+      version: "5.3.3"
+    - name: "yarn"
+      version: "1.22.21"
+    # ... more npm packages
+
+# User exclusions (tools user chose not to install)
+excluded:
+  - slack
+  - microsoft-teams
+  - ruby
+
+# Dotfiles configuration status
+dotfiles:
+  zshrc:
+    configured: true
+    backup_path: "~/.zshrc.backup.20240115-103000"
+  gitconfig:
+    configured: true
+    backup_path: "~/.gitconfig.backup.20240115-103000"
+  vimrc:
+    configured: true
+    backup_path: null

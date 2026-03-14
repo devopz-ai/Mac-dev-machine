@@ -1,0 +1,172 @@
+" ==============================================================================
+" Vim Configuration
+" Added by: https://github.com/devopz-ai/Mac-dev-machine
+" ==============================================================================
+
+" ------------------------------------------------------------------------------
+" Basic Settings
+" ------------------------------------------------------------------------------
+
+" Use Vim settings, not Vi
+set nocompatible
+
+" Enable syntax highlighting
+syntax on
+
+" Enable file type detection and plugins
+filetype plugin indent on
+
+" ------------------------------------------------------------------------------
+" Display
+" ------------------------------------------------------------------------------
+
+" Show line numbers
+set number
+
+" Show relative line numbers (useful for jumping)
+set relativenumber
+
+" Highlight current line
+set cursorline
+
+" Show matching brackets
+set showmatch
+
+" Show command in status line
+set showcmd
+
+" Show current mode
+set showmode
+
+" Always show status line
+set laststatus=2
+
+" Show ruler (line, column)
+set ruler
+
+" Enable 256 colors
+set t_Co=256
+
+" Use dark background
+set background=dark
+
+" ------------------------------------------------------------------------------
+" Indentation
+" ------------------------------------------------------------------------------
+
+" Number of spaces for a tab
+set tabstop=4
+
+" Number of spaces for indentation
+set shiftwidth=4
+
+" Use spaces instead of tabs
+set expandtab
+
+" Smart indentation
+set smartindent
+
+" Auto indentation
+set autoindent
+
+" ------------------------------------------------------------------------------
+" Search
+" ------------------------------------------------------------------------------
+
+" Highlight search results
+set hlsearch
+
+" Incremental search
+set incsearch
+
+" Case insensitive search
+set ignorecase
+
+" Case sensitive if uppercase is used
+set smartcase
+
+" ------------------------------------------------------------------------------
+" Editing
+" ------------------------------------------------------------------------------
+
+" Allow backspace over everything
+set backspace=indent,eol,start
+
+" Enable mouse support
+set mouse=a
+
+" Use system clipboard
+set clipboard=unnamed
+
+" Don't create backup files
+set nobackup
+set nowritebackup
+set noswapfile
+
+" Enable undo file
+set undofile
+set undodir=~/.vim/undodir
+
+" Auto-read files changed outside vim
+set autoread
+
+" ------------------------------------------------------------------------------
+" Completion
+" ------------------------------------------------------------------------------
+
+" Command line completion
+set wildmenu
+set wildmode=list:longest,full
+
+" Ignore these files
+set wildignore+=*.o,*.obj,*.pyc,*.class
+set wildignore+=*.swp,*.bak
+set wildignore+=.git,.svn
+set wildignore+=node_modules,__pycache__
+
+" ------------------------------------------------------------------------------
+" Key Mappings
+" ------------------------------------------------------------------------------
+
+" Set leader key to space
+let mapleader = " "
+
+" Quick save
+nnoremap <leader>w :w<CR>
+
+" Quick quit
+nnoremap <leader>q :q<CR>
+
+" Clear search highlighting
+nnoremap <leader>h :nohlsearch<CR>
+
+" Move between splits
+nnoremap <C-h> <C-w>h
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-l> <C-w>l
+
+" Move lines up/down
+nnoremap <A-j> :m .+1<CR>==
+nnoremap <A-k> :m .-2<CR>==
+
+" Better indenting in visual mode
+vnoremap < <gv
+vnoremap > >gv
+
+" ------------------------------------------------------------------------------
+" File Types
+" ------------------------------------------------------------------------------
+
+" Use 2 spaces for these file types
+autocmd FileType javascript,typescript,json,yaml,html,css setlocal tabstop=2 shiftwidth=2
+
+" Treat .md as markdown
+autocmd BufNewFile,BufRead *.md set filetype=markdown
+
+" ------------------------------------------------------------------------------
+" Create undo directory
+" ------------------------------------------------------------------------------
+if !isdirectory($HOME."/.vim/undodir")
+    call mkdir($HOME."/.vim/undodir", "p", 0700)
+endif
