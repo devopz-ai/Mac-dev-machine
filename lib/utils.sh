@@ -95,12 +95,14 @@ install_formula() {
 
     if formula_installed "$formula"; then
         log_info "$name is already installed"
+        record_install "formula" "$name" "$formula"
         return 0
     fi
 
     log_step "Installing $name..."
     if brew install "$formula" 2>&1; then
         log_success "$name installed"
+        record_install "formula" "$name" "$formula"
         return 0
     else
         log_warning "Could not install $name (may need manual installation)"
@@ -175,12 +177,14 @@ install_cask() {
 
     if [[ -d "/Applications/${app_name}.app" ]] || [[ -d "$HOME/Applications/${app_name}.app" ]]; then
         log_info "$name is already installed (found in Applications)"
+        record_install "cask" "$name" "$cask"
         return 0
     fi
 
     log_step "Installing $name..."
     if brew install --cask "$cask" 2>&1; then
         log_success "$name installed"
+        record_install "cask" "$name" "$cask"
         return 0
     else
         log_warning "Could not install $name (may already exist or require manual install)"
@@ -195,12 +199,14 @@ install_npm_global() {
 
     if npm list -g "$package" &> /dev/null; then
         log_info "$name is already installed (npm)"
+        record_install "npm" "$name" "$package"
         return 0
     fi
 
     log_step "Installing $name via npm..."
     if npm install -g "$package"; then
         log_success "$name installed"
+        record_install "npm" "$name" "$package"
         return 0
     else
         log_error "Failed to install $name"
@@ -215,12 +221,14 @@ install_pip() {
 
     if pip3 show "$package" &> /dev/null; then
         log_info "$name is already installed (pip)"
+        record_install "pip" "$name" "$package"
         return 0
     fi
 
     log_step "Installing $name via pip..."
     if pip3 install "$package"; then
         log_success "$name installed"
+        record_install "pip" "$name" "$package"
         return 0
     else
         log_error "Failed to install $name"
@@ -294,4 +302,72 @@ append_if_missing() {
     if ! grep -qF "$line" "$file" 2>/dev/null; then
         echo "$line" >> "$file"
     fi
+}
+
+# ============================================================================
+# State Management - Track installed packages
+# ============================================================================
+
+STATE_DIR="$HOME/.mac-dev-machine"
+STATE_FILE="$STATE_DIR/installed.txt"
+
+# Initialize state directory and file
+init_state() {
+    mkdir -p "$STATE_DIR"
+    touch "$STATE_FILE"
+}
+
+# Record an installed package
+# Usage: record_install "type" "name" "package"
+# Example: record_install "formula" "Git" "git"
+record_install() {
+    local type="$1"
+    local name="$2"
+    local package="$3"
+    local timestamp=$(date +%Y-%m-%d_%H:%M:%S)
+
+    init_state
+
+    # Check if already recorded
+    if grep -q "^${type}|${package}|" "$STATE_FILE" 2>/dev/null; then
+        return 0
+    fi
+
+    echo "${type}|${package}|${name}|${timestamp}" >> "$STATE_FILE"
+}
+
+# Remove a package from state
+remove_from_state() {
+    local type="$1"
+    local package="$2"
+
+    if [[ -f "$STATE_FILE" ]]; then
+        local temp_file=$(mktemp)
+        grep -v "^${type}|${package}|" "$STATE_FILE" > "$temp_file" 2>/dev/null || true
+        mv "$temp_file" "$STATE_FILE"
+    fi
+}
+
+# Check if package is in our state (installed by us)
+is_recorded() {
+    local type="$1"
+    local package="$2"
+
+    grep -q "^${type}|${package}|" "$STATE_FILE" 2>/dev/null
+}
+
+# Get all installed packages of a type
+get_installed_by_type() {
+    local type="$1"
+    grep "^${type}|" "$STATE_FILE" 2>/dev/null | cut -d'|' -f2 || true
+}
+
+# Get all installed packages
+get_all_installed() {
+    cat "$STATE_FILE" 2>/dev/null || true
+}
+
+# Count installed packages
+count_installed() {
+    wc -l < "$STATE_FILE" 2>/dev/null | tr -d ' ' || echo "0"
 }

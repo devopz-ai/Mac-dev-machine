@@ -10,7 +10,8 @@ This repository automates the setup of a macOS development machine for developer
 Mac-dev-machine/
 ├── install.sh              # Main installation script
 ├── update.sh               # Update installed tools
-├── uninstall.sh            # Remove tools
+├── uninstall.sh            # Remove tools (with state tracking)
+├── scan-installed.sh       # Scan and record installed packages
 ├── lib/                    # Shared functions
 │   ├── utils.sh            # Logging, colors, helpers
 │   ├── os_check.sh         # macOS version detection
@@ -114,42 +115,57 @@ cp config/user-config.yaml.example config/user-config.yaml
 
 ## Uninstall Tools
 
+The uninstall script tracks installations and only removes packages installed by this setup.
+
 ```bash
-# List installed tools
+# Interactive mode - auto-scans if no state file exists
+./uninstall.sh
+
+# Show installed packages summary
 ./uninstall.sh --list
 
-# Remove specific tool
-./uninstall.sh --tool docker
-./uninstall.sh --tool "visual-studio-code"
+# Show detailed package list
+./uninstall.sh --detailed
+
+# Force rescan of installed packages
+./uninstall.sh --scan
+
+# Uninstall by type
+./uninstall.sh --type formula    # Homebrew formulas
+./uninstall.sh --type cask       # Homebrew casks
+./uninstall.sh --type npm        # NPM packages
+./uninstall.sh --type pip        # Pip packages
 
 # Remove all (careful!)
-./uninstall.sh --all --yes
+./uninstall.sh --all
+```
+
+### Scan Installed Packages
+
+If you need to regenerate the state file (e.g., after manual installations):
+```bash
+./scan-installed.sh
 ```
 
 ## Installation State
 
-The installer tracks what's installed in `~/.mac-dev-machine-state.yaml`:
+The installer tracks what's installed in `~/.mac-dev-machine/installed.txt`:
 
-```yaml
-metadata:
-  installed_at: "2024-01-15T10:30:00Z"
-  package_tier: "standard"
-  macos_version: "14.2.1"
-  architecture: "arm64"
-
-installed:
-  formulae:
-    git: { version: "2.43.0" }
-    # ...
-  casks:
-    visual-studio-code: { version: "1.85.0" }
-    # ...
+```
+formula|git|git|2024-01-15_10:30:00
+formula|wget|wget|2024-01-15_10:30:01
+cask|visual-studio-code|Visual Studio Code|2024-01-15_10:31:00
+cask|docker|Docker|2024-01-15_10:32:00
+npm|typescript|typescript|2024-01-15_10:35:00
+pip|aider-chat|Aider|2024-01-15_10:36:00
 ```
 
+Format: `type|package|display_name|timestamp`
+
 Use this state file to:
-- Know what's installed
-- Track versions for updates
-- Know what to uninstall
+- Know what's installed by this setup
+- Track what can be safely uninstalled
+- Regenerate with `./scan-installed.sh` if needed
 
 ## Key Commands for AI Agents
 

@@ -1,259 +1,442 @@
 #!/bin/bash
 #
 # Mac Dev Machine - Uninstall Script
-# Removes tools installed by this repository
-#
-# Usage:
-#   ./uninstall.sh                    # Interactive mode
-#   ./uninstall.sh --tool <name>      # Uninstall specific tool
-#   ./uninstall.sh --all              # Uninstall everything (careful!)
-#   ./uninstall.sh --list             # List installed tools
+# Removes only tools that were installed by this setup
 #
 
-set -e
+set +e  # Continue on errors
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/utils.sh"
 
-# Parse arguments
-ACTION=""
-TOOL_NAME=""
-AUTO_YES=false
+STATE_DIR="$HOME/.mac-dev-machine"
+STATE_FILE="$STATE_DIR/installed.txt"
 
-parse_args() {
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --tool|-t)
-                ACTION="tool"
-                TOOL_NAME="$2"
-                shift 2
-                ;;
-            --all)
-                ACTION="all"
-                shift
-                ;;
-            --list|-l)
-                ACTION="list"
-                shift
-                ;;
-            --yes|-y)
-                AUTO_YES=true
-                shift
-                ;;
-            --help|-h)
-                show_help
-                exit 0
-                ;;
-            *)
-                log_error "Unknown option: $1"
-                show_help
-                exit 1
-                ;;
-        esac
+print_header() {
+    echo ""
+    echo -e "${BLUE}======================================================${NC}"
+    echo -e "${BLUE}        Mac Dev Machine - Uninstall Script            ${NC}"
+    echo -e "${BLUE}======================================================${NC}"
+    echo ""
+}
+
+print_warning() {
+    echo -e "${YELLOW}This will remove packages installed by Mac Dev Machine.${NC}"
+    echo -e "${YELLOW}Your data and configurations will be preserved.${NC}"
+    echo ""
+}
+
+# Check if state file exists, auto-scan if not
+check_state_file() {
+    if [[ ! -f "$STATE_FILE" ]] || [[ ! -s "$STATE_FILE" ]]; then
+        log_warning "No installation record found. Scanning for installed packages..."
+        echo ""
+
+        # Run the scan script
+        if [[ -f "${SCRIPT_DIR}/scan-installed.sh" ]]; then
+            "${SCRIPT_DIR}/scan-installed.sh"
+        else
+            log_error "scan-installed.sh not found"
+            exit 1
+        fi
+
+        # Check if scan created the file
+        if [[ ! -f "$STATE_FILE" ]] || [[ ! -s "$STATE_FILE" ]]; then
+            log_error "No packages found to uninstall."
+            exit 1
+        fi
+        echo ""
+    fi
+}
+
+# Show what's installed
+show_installed() {
+    check_state_file
+
+    echo -e "${CYAN}Packages installed by Mac Dev Machine:${NC}"
+    echo ""
+
+    local formulas=$(grep "^formula|" "$STATE_FILE" 2>/dev/null | wc -l | tr -d ' ')
+    local casks=$(grep "^cask|" "$STATE_FILE" 2>/dev/null | wc -l | tr -d ' ')
+    local npms=$(grep "^npm|" "$STATE_FILE" 2>/dev/null | wc -l | tr -d ' ')
+    local pips=$(grep "^pip|" "$STATE_FILE" 2>/dev/null | wc -l | tr -d ' ')
+
+    echo "  Homebrew Formulas: $formulas"
+    echo "  Homebrew Casks:    $casks"
+    echo "  NPM Packages:      $npms"
+    echo "  Pip Packages:      $pips"
+    echo ""
+    echo "  Total: $((formulas + casks + npms + pips)) packages"
+    echo ""
+}
+
+# Show detailed list
+show_detailed_list() {
+    check_state_file
+
+    echo -e "${CYAN}=== Homebrew Formulas ===${NC}"
+    grep "^formula|" "$STATE_FILE" 2>/dev/null | while IFS='|' read -r type pkg name date; do
+        echo "  - $name ($pkg)"
     done
-}
-
-show_help() {
-    cat << EOF
-Mac Dev Machine - Uninstall Script
-
-Usage: ./uninstall.sh [OPTIONS]
-
-Options:
-    --tool, -t <name>   Uninstall a specific tool
-    --all               Uninstall all tools (use with caution)
-    --list, -l          List all installed tools from this repo
-    --yes, -y           Skip confirmation prompts
-    --help, -h          Show this help message
-
-Examples:
-    ./uninstall.sh --list
-    ./uninstall.sh --tool docker
-    ./uninstall.sh --tool "visual-studio-code"
-    ./uninstall.sh --all --yes
-
-EOF
-}
-
-# List installed tools
-list_installed() {
-    log_section "Installed Tools"
-
-    echo ""
-    echo "=== Homebrew Formulae ==="
-    brew list --formula 2>/dev/null | head -50 || echo "None"
-
-    echo ""
-    echo "=== Homebrew Casks ==="
-    brew list --cask 2>/dev/null | head -50 || echo "None"
-
-    echo ""
-    echo "=== Global NPM Packages ==="
-    npm list -g --depth=0 2>/dev/null | tail -n +2 | head -20 || echo "None"
-
-    echo ""
-    echo "=== Pip Packages ==="
-    pip3 list 2>/dev/null | head -30 || echo "None"
-
-    echo ""
-    log_info "Use './uninstall.sh --tool <name>' to remove a specific tool"
-}
-
-# Uninstall a specific tool
-uninstall_tool() {
-    local tool="$1"
-
-    log_step "Looking for: $tool"
-
-    # Check if it's a cask
-    if brew list --cask "$tool" &>/dev/null; then
-        log_warning "Found cask: $tool"
-        if [[ "$AUTO_YES" == true ]] || ask_yes_no "Uninstall $tool?"; then
-            brew uninstall --cask "$tool"
-            log_success "Uninstalled cask: $tool"
-        fi
-        return 0
-    fi
-
-    # Check if it's a formula
-    if brew list "$tool" &>/dev/null; then
-        log_warning "Found formula: $tool"
-        if [[ "$AUTO_YES" == true ]] || ask_yes_no "Uninstall $tool?"; then
-            brew uninstall "$tool"
-            log_success "Uninstalled formula: $tool"
-        fi
-        return 0
-    fi
-
-    # Check if it's an npm package
-    if npm list -g "$tool" &>/dev/null; then
-        log_warning "Found npm package: $tool"
-        if [[ "$AUTO_YES" == true ]] || ask_yes_no "Uninstall $tool?"; then
-            npm uninstall -g "$tool"
-            log_success "Uninstalled npm package: $tool"
-        fi
-        return 0
-    fi
-
-    # Check if it's a pip package
-    if pip3 show "$tool" &>/dev/null; then
-        log_warning "Found pip package: $tool"
-        if [[ "$AUTO_YES" == true ]] || ask_yes_no "Uninstall $tool?"; then
-            pip3 uninstall -y "$tool"
-            log_success "Uninstalled pip package: $tool"
-        fi
-        return 0
-    fi
-
-    log_error "Tool not found: $tool"
-    return 1
-}
-
-# Uninstall all tools (dangerous!)
-uninstall_all() {
-    log_warning "This will uninstall ALL tools installed by this repository!"
-    log_warning "This action cannot be undone."
     echo ""
 
-    if [[ "$AUTO_YES" != true ]]; then
-        read -p "Type 'yes' to confirm: " confirm
-        if [[ "$confirm" != "yes" ]]; then
-            log_info "Cancelled."
-            exit 0
-        fi
-    fi
-
-    log_section "Uninstalling All Tools"
-
-    # Uninstall casks first (GUI apps)
-    log_step "Uninstalling casks..."
-    local casks=$(brew list --cask 2>/dev/null)
-    for cask in $casks; do
-        log_info "Removing: $cask"
-        brew uninstall --cask "$cask" 2>/dev/null || true
+    echo -e "${CYAN}=== Homebrew Casks ===${NC}"
+    grep "^cask|" "$STATE_FILE" 2>/dev/null | while IFS='|' read -r type pkg name date; do
+        echo "  - $name ($pkg)"
     done
+    echo ""
 
-    # Uninstall formulae
-    log_step "Uninstalling formulae..."
-    local formulae=$(brew list --formula 2>/dev/null)
-    for formula in $formulae; do
-        # Skip critical system tools
-        if [[ "$formula" == "openssl"* ]] || [[ "$formula" == "readline" ]]; then
-            continue
-        fi
-        log_info "Removing: $formula"
-        brew uninstall "$formula" 2>/dev/null || true
+    echo -e "${CYAN}=== NPM Packages ===${NC}"
+    grep "^npm|" "$STATE_FILE" 2>/dev/null | while IFS='|' read -r type pkg name date; do
+        echo "  - $name ($pkg)"
     done
+    echo ""
 
-    # Cleanup
-    log_step "Cleaning up..."
-    brew cleanup 2>/dev/null || true
-
-    log_success "Uninstallation complete"
-    log_info "Note: Homebrew itself was NOT removed"
-    log_info "To remove Homebrew: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)\""
+    echo -e "${CYAN}=== Pip Packages ===${NC}"
+    grep "^pip|" "$STATE_FILE" 2>/dev/null | while IFS='|' read -r type pkg name date; do
+        echo "  - $name ($pkg)"
+    done
+    echo ""
 }
 
-# Interactive mode
-interactive_mode() {
-    log_section "Uninstall Tool"
-    echo ""
-    echo "What would you like to do?"
-    echo ""
-    echo "  1) List installed tools"
-    echo "  2) Uninstall a specific tool"
-    echo "  3) Uninstall all tools"
-    echo "  4) Exit"
-    echo ""
+# Uninstall all formulas
+uninstall_formulas() {
+    log_step "Uninstalling Homebrew formulas..."
 
-    read -p "Enter choice [1-4]: " choice
-
-    case $choice in
-        1)
-            list_installed
-            ;;
-        2)
-            echo ""
-            read -p "Enter tool name to uninstall: " tool
-            if [[ -n "$tool" ]]; then
-                uninstall_tool "$tool"
+    grep "^formula|" "$STATE_FILE" 2>/dev/null | while IFS='|' read -r type pkg name date; do
+        if brew list "$pkg" &>/dev/null; then
+            log_step "Removing $name..."
+            if brew uninstall "$pkg" 2>/dev/null; then
+                log_success "Removed $name"
+                remove_from_state "formula" "$pkg"
+            else
+                log_warning "Could not remove $name"
             fi
+        else
+            log_info "$name already removed"
+            remove_from_state "formula" "$pkg"
+        fi
+    done
+}
+
+# Uninstall all casks
+uninstall_casks() {
+    log_step "Uninstalling Homebrew casks..."
+
+    grep "^cask|" "$STATE_FILE" 2>/dev/null | while IFS='|' read -r type pkg name date; do
+        if brew list --cask "$pkg" &>/dev/null; then
+            log_step "Removing $name..."
+            if brew uninstall --cask "$pkg" 2>/dev/null; then
+                log_success "Removed $name"
+                remove_from_state "cask" "$pkg"
+            else
+                log_warning "Could not remove $name"
+            fi
+        else
+            log_info "$name already removed"
+            remove_from_state "cask" "$pkg"
+        fi
+    done
+}
+
+# Uninstall all npm packages
+uninstall_npm() {
+    log_step "Uninstalling NPM packages..."
+
+    if ! command -v npm &>/dev/null; then
+        log_warning "npm not found, skipping npm packages"
+        return
+    fi
+
+    grep "^npm|" "$STATE_FILE" 2>/dev/null | while IFS='|' read -r type pkg name date; do
+        log_step "Removing $name..."
+        if npm uninstall -g "$pkg" 2>/dev/null; then
+            log_success "Removed $name"
+            remove_from_state "npm" "$pkg"
+        else
+            log_warning "Could not remove $name"
+        fi
+    done
+}
+
+# Uninstall all pip packages
+uninstall_pip() {
+    log_step "Uninstalling Pip packages..."
+
+    local pip_cmd="pip3"
+    if ! command -v pip3 &>/dev/null; then
+        if command -v pip &>/dev/null; then
+            pip_cmd="pip"
+        else
+            log_warning "pip not found, skipping pip packages"
+            return
+        fi
+    fi
+
+    grep "^pip|" "$STATE_FILE" 2>/dev/null | while IFS='|' read -r type pkg name date; do
+        log_step "Removing $name..."
+        if $pip_cmd uninstall -y "$pkg" 2>/dev/null; then
+            log_success "Removed $name"
+            remove_from_state "pip" "$pkg"
+        else
+            log_warning "Could not remove $name"
+        fi
+    done
+}
+
+# Uninstall version managers and their installations
+uninstall_version_managers() {
+    log_step "Uninstalling version managers..."
+
+    # Python via pyenv
+    if command -v pyenv &>/dev/null; then
+        log_step "Removing Python versions..."
+        for version in $(pyenv versions --bare 2>/dev/null); do
+            pyenv uninstall -f "$version" 2>/dev/null || true
+        done
+        rm -rf "$HOME/.pyenv"
+        log_success "Removed pyenv and Python versions"
+    fi
+
+    # Node via nvm
+    if [[ -d "$HOME/.nvm" ]]; then
+        rm -rf "$HOME/.nvm"
+        log_success "Removed nvm and Node versions"
+    fi
+
+    # Ruby via rbenv
+    if command -v rbenv &>/dev/null; then
+        for version in $(rbenv versions --bare 2>/dev/null); do
+            rbenv uninstall -f "$version" 2>/dev/null || true
+        done
+        rm -rf "$HOME/.rbenv"
+        log_success "Removed rbenv and Ruby versions"
+    fi
+
+    # Rust
+    if [[ -d "$HOME/.cargo" ]]; then
+        rm -rf "$HOME/.cargo"
+        rm -rf "$HOME/.rustup"
+        log_success "Removed Rust and Cargo"
+    fi
+
+    # Go
+    if [[ -d "$HOME/go" ]]; then
+        rm -rf "$HOME/go"
+        log_success "Removed Go workspace"
+    fi
+}
+
+# Clean shell configuration
+cleanup_shell_config() {
+    log_step "Cleaning shell configuration..."
+
+    local shell_config="$HOME/.zshrc"
+    local backup="$HOME/.zshrc.backup.$(date +%Y%m%d%H%M%S)"
+
+    if [[ -f "$shell_config" ]]; then
+        cp "$shell_config" "$backup"
+        log_info "Backed up .zshrc to $backup"
+
+        # Create temp file
+        local temp_file=$(mktemp)
+
+        # Filter out our added configurations
+        awk '
+        /^# Pyenv$/,/pyenv virtualenv-init/ { next }
+        /^# NVM$/,/bash_completion/ { next }
+        /^# Java$/,/JAVA_HOME\/bin/ { next }
+        /^# Go$/,/GOPATH\/bin/ { next }
+        /^# Rust$/,/cargo\/env/ { next }
+        /^# Ruby$/,/rbenv init/ { next }
+        /^# PostgreSQL$/,/postgresql@16/ { next }
+        /^# AI Tools$/,/ANTHROPIC_API_KEY/ { next }
+        { print }
+        ' "$shell_config" > "$temp_file"
+
+        mv "$temp_file" "$shell_config"
+        log_success "Shell configuration cleaned"
+    fi
+}
+
+# Uninstall everything
+uninstall_all() {
+    check_state_file
+    show_installed
+
+    echo -e "${RED}WARNING: This will uninstall ALL packages installed by Mac Dev Machine!${NC}"
+    echo ""
+    read -p "Are you sure? Type 'yes' to confirm: " confirm
+
+    if [[ "$confirm" != "yes" ]]; then
+        log_info "Uninstall cancelled."
+        exit 0
+    fi
+
+    echo ""
+    uninstall_pip
+    uninstall_npm
+    uninstall_casks
+    uninstall_formulas
+    uninstall_version_managers
+    cleanup_shell_config
+
+    # Cleanup Homebrew
+    log_step "Cleaning up Homebrew..."
+    brew cleanup --prune=all 2>/dev/null || true
+    brew autoremove 2>/dev/null || true
+
+    # Remove state file
+    rm -f "$STATE_FILE"
+
+    log_success "Uninstall completed!"
+    echo ""
+    echo -e "${YELLOW}Note: Homebrew itself was NOT removed.${NC}"
+    echo -e "${YELLOW}To remove Homebrew, run:${NC}"
+    echo -e "${BLUE}/bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)\"${NC}"
+}
+
+# Uninstall by type
+uninstall_by_type() {
+    local type="$1"
+
+    check_state_file
+
+    case "$type" in
+        formula|formulas)
+            uninstall_formulas
             ;;
-        3)
-            uninstall_all
+        cask|casks)
+            uninstall_casks
             ;;
-        4)
-            exit 0
+        npm)
+            uninstall_npm
+            ;;
+        pip)
+            uninstall_pip
             ;;
         *)
-            log_error "Invalid choice"
+            log_error "Unknown type: $type"
+            log_info "Valid types: formula, cask, npm, pip"
             exit 1
             ;;
     esac
 }
 
+# Interactive menu
+show_menu() {
+    echo "What would you like to uninstall?"
+    echo ""
+    echo "  1) Show installed packages"
+    echo "  2) Show detailed list"
+    echo "  3) Uninstall Homebrew Formulas only"
+    echo "  4) Uninstall Homebrew Casks only"
+    echo "  5) Uninstall NPM packages only"
+    echo "  6) Uninstall Pip packages only"
+    echo "  7) Uninstall version managers (pyenv, nvm, rbenv, rust)"
+    echo "  8) Clean shell configuration only"
+    echo ""
+    echo "  A) UNINSTALL EVERYTHING"
+    echo "  Q) Quit"
+    echo ""
+}
+
+# Force rescan
+force_scan() {
+    log_step "Rescanning installed packages..."
+    rm -f "$STATE_FILE"
+    "${SCRIPT_DIR}/scan-installed.sh"
+}
+
+# Usage help
+usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  --list, -l      Show installed packages"
+    echo "  --detailed, -d  Show detailed package list"
+    echo "  --scan, -s      Force rescan of installed packages"
+    echo "  --all, -a       Uninstall everything"
+    echo "  --type TYPE     Uninstall by type (formula, cask, npm, pip)"
+    echo "  --help, -h      Show this help"
+    echo ""
+    echo "Interactive mode (no options):"
+    echo "  Run without options for interactive menu"
+}
+
 # Main
 main() {
-    parse_args "$@"
+    print_header
 
-    case $ACTION in
-        list)
-            list_installed
+    # Parse arguments
+    case "${1:-}" in
+        --list|-l)
+            check_state_file
+            show_installed
+            exit 0
             ;;
-        tool)
-            if [[ -z "$TOOL_NAME" ]]; then
-                log_error "Please specify a tool name"
-                exit 1
-            fi
-            uninstall_tool "$TOOL_NAME"
+        --detailed|-d)
+            check_state_file
+            show_detailed_list
+            exit 0
             ;;
-        all)
+        --scan|-s)
+            force_scan
+            exit 0
+            ;;
+        --all|-a)
             uninstall_all
+            exit 0
+            ;;
+        --type|-t)
+            check_state_file
+            uninstall_by_type "${2:-}"
+            exit 0
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        "")
+            # Interactive mode
             ;;
         *)
-            interactive_mode
+            log_error "Unknown option: $1"
+            usage
+            exit 1
             ;;
     esac
+
+    # Interactive mode
+    print_warning
+
+    # Auto-scan if no state file
+    check_state_file
+
+    while true; do
+        show_menu
+        read -p "Enter choice [1-8, A, Q]: " choice
+        echo ""
+
+        case $choice in
+            1) show_installed ;;
+            2) show_detailed_list ;;
+            3) uninstall_formulas ;;
+            4) uninstall_casks ;;
+            5) uninstall_npm ;;
+            6) uninstall_pip ;;
+            7) uninstall_version_managers ;;
+            8) cleanup_shell_config ;;
+            [Aa]) uninstall_all; exit 0 ;;
+            [Qq]) log_info "Exiting."; exit 0 ;;
+            *) log_warning "Invalid choice." ;;
+        esac
+
+        echo ""
+        read -p "Press Enter to continue..."
+        clear
+        print_header
+    done
 }
 
 main "$@"

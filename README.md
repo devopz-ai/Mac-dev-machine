@@ -198,24 +198,52 @@ Then run with your config:
 
 ### Uninstall Tools
 
+The uninstall script tracks what was installed and only removes those packages.
+
 ```bash
-# List installed tools
+# Interactive mode (recommended)
+./uninstall.sh
+
+# Show what's installed
 ./uninstall.sh --list
 
-# Remove a specific tool
-./uninstall.sh --tool docker
-./uninstall.sh --tool slack
+# Show detailed package list
+./uninstall.sh --detailed
+
+# Force rescan of installed packages
+./uninstall.sh --scan
+
+# Uninstall by type
+./uninstall.sh --type formula    # Homebrew formulas only
+./uninstall.sh --type cask       # Homebrew casks only
+./uninstall.sh --type npm        # NPM packages only
+./uninstall.sh --type pip        # Pip packages only
 
 # Remove all tools (careful!)
 ./uninstall.sh --all
 ```
 
+**Interactive Menu Options:**
+1. Show installed packages
+2. Show detailed list
+3. Uninstall Homebrew Formulas only
+4. Uninstall Homebrew Casks only
+5. Uninstall NPM packages only
+6. Uninstall Pip packages only
+7. Uninstall version managers (pyenv, nvm, rbenv, rust)
+8. Clean shell configuration only
+
 ### Installation State
 
-The installer tracks what's installed in `~/.mac-dev-machine-state.yaml`. This file is used by:
-- `update.sh` - to know what to update
-- `uninstall.sh` - to know what can be removed
-- `validate.sh` - to verify installation
+The installer tracks what's installed in `~/.mac-dev-machine/installed.txt`. This file is:
+- **Auto-generated** on first uninstall if it doesn't exist
+- Used by `uninstall.sh` to know what can be removed
+- Updated automatically when you install or uninstall packages
+
+You can also manually scan/rescan installed packages:
+```bash
+./scan-installed.sh
+```
 
 ---
 
