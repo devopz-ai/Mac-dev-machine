@@ -78,6 +78,64 @@ command_exists() {
     command -v "$1" &> /dev/null
 }
 
+# Default timeout for network operations (in seconds)
+INSTALL_TIMEOUT="${INSTALL_TIMEOUT:-300}"  # 5 minutes default
+
+# Handle install failure - ask user what to do
+# Returns: 0 = retry, 1 = skip, 2 = abort
+handle_install_failure() {
+    local name="$1"
+    local error_msg="$2"
+
+    # In auto mode, just skip
+    if [[ "$AUTO_YES" == true ]]; then
+        log_warning "Skipping $name (auto mode)"
+        return 1
+    fi
+
+    echo ""
+    log_error "Failed to install: $name"
+    [[ -n "$error_msg" ]] && echo "  Error: $error_msg"
+    echo ""
+    echo "  Options:"
+    echo "    [r] Retry installation"
+    echo "    [s] Skip this package (continue with next)"
+    echo "    [a] Abort installation"
+    echo ""
+
+    while true; do
+        read -p "  What would you like to do? [r/s/a]: " choice
+        case "$choice" in
+            [rR]) return 0 ;;  # Retry
+            [sS]) return 1 ;;  # Skip
+            [aA])
+                log_error "Installation aborted by user"
+                exit 1
+                ;;
+            *)
+                echo "  Please enter 'r' to retry, 's' to skip, or 'a' to abort"
+                ;;
+        esac
+    done
+}
+
+# Install with timeout
+install_with_timeout() {
+    local timeout_sec="$1"
+    shift
+    local cmd="$@"
+
+    # Use timeout command if available, otherwise just run
+    if command_exists timeout; then
+        timeout "$timeout_sec" $cmd
+    elif command_exists gtimeout; then
+        gtimeout "$timeout_sec" $cmd
+    else
+        # No timeout command, run directly
+        $cmd
+    fi
+}
+
 # Check if cask is installed
 cask_installed() {
     brew list --cask "$1" &> /dev/null
@@ -92,6 +150,8 @@ formula_installed() {
 install_formula() {
     local formula="$1"
     local name="${2:-$formula}"
+    local max_retries=2
+    local attempt=0
 
     if formula_installed "$formula"; then
         log_info "$name is already installed"
@@ -99,21 +159,60 @@ install_formula() {
         return 0
     fi
 
-    log_step "Installing $name..."
-    if brew install "$formula" 2>&1; then
-        log_success "$name installed"
-        record_install "formula" "$name" "$formula"
-        return 0
-    else
-        log_warning "Could not install $name (may need manual installation)"
-        return 0  # Return 0 to continue installation
-    fi
+    while [[ $attempt -lt $max_retries ]]; do
+        log_step "Installing $name..."
+
+        # Run brew install with output capture
+        local output
+        local exit_code
+        output=$(brew install "$formula" 2>&1) && exit_code=0 || exit_code=$?
+
+        if [[ $exit_code -eq 0 ]]; then
+            log_success "$name installed"
+            record_install "formula" "$name" "$formula"
+            return 0
+        fi
+
+        # Check for network/timeout errors
+        if echo "$output" | grep -qiE "(timed out|network|connection|curl|fetch|download)"; then
+            log_warning "Network issue while installing $name"
+            handle_install_failure "$name" "Network/download error"
+            local action=$?
+            case $action in
+                0) ((attempt++)); continue ;;  # Retry
+                1) return 0 ;;  # Skip
+                2) exit 1 ;;    # Abort
+            esac
+        else
+            # Non-network error
+            log_warning "Could not install $name: $output"
+            return 0  # Continue to next package
+        fi
+    done
+
+    log_warning "Skipping $name after $max_retries attempts"
+    return 0
 }
 
 # Install brew cask if not installed
 install_cask() {
     local cask="$1"
     local name="${2:-$cask}"
+
+    # Refresh sudo before cask install (some casks like temurin use sudo installer)
+    refresh_sudo
+
+    # Setup HOMEBREW_SUDO_ASKPASS if password is available but askpass not set
+    if [[ -n "$SUDO_PASSWORD" ]] && [[ -z "$HOMEBREW_SUDO_ASKPASS" ]]; then
+        local askpass_script=$(mktemp)
+        chmod 700 "$askpass_script"
+        cat > "$askpass_script" << ASKPASS_EOF
+#!/bin/bash
+echo "$SUDO_PASSWORD"
+ASKPASS_EOF
+        export SUDO_ASKPASS="$askpass_script"
+        export HOMEBREW_SUDO_ASKPASS="$askpass_script"
+    fi
 
     # Check if already installed via Homebrew
     if cask_installed "$cask"; then
@@ -181,15 +280,46 @@ install_cask() {
         return 0
     fi
 
-    log_step "Installing $name..."
-    if brew install --cask "$cask" 2>&1; then
-        log_success "$name installed"
-        record_install "cask" "$name" "$cask"
-        return 0
-    else
-        log_warning "Could not install $name (may already exist or require manual install)"
-        return 0  # Return 0 to continue installation
-    fi
+    local max_retries=2
+    local attempt=0
+
+    while [[ $attempt -lt $max_retries ]]; do
+        log_step "Installing $name..."
+
+        # Refresh sudo right before brew install (some casks run sudo installer)
+        refresh_sudo
+
+        # Run brew install with output capture
+        local output
+        local exit_code
+        output=$(brew install --cask "$cask" 2>&1) && exit_code=0 || exit_code=$?
+
+        if [[ $exit_code -eq 0 ]]; then
+            log_success "$name installed"
+            record_install "cask" "$name" "$cask"
+            return 0
+        fi
+
+        # Check for network/timeout errors
+        if echo "$output" | grep -qiE "(timed out|network|connection|curl|fetch|download|mirror|server)"; then
+            log_warning "Network issue while installing $name"
+            handle_install_failure "$name" "Network/download error - try checking your internet connection"
+            local action=$?
+            case $action in
+                0) ((attempt++)); continue ;;  # Retry
+                1) return 0 ;;  # Skip
+                2) exit 1 ;;    # Abort
+            esac
+        else
+            # Non-network error (already installed, quarantine, etc)
+            log_warning "Could not install $name (may already exist or require manual install)"
+            echo "  Output: $output" | head -3
+            return 0  # Continue to next package
+        fi
+    done
+
+    log_warning "Skipping $name after $max_retries attempts"
+    return 0
 }
 
 # Install npm global package
@@ -242,6 +372,28 @@ get_brew_prefix() {
         echo "/opt/homebrew"
     else
         echo "/usr/local"
+    fi
+}
+
+# Run command with sudo - uses SUDO_PASSWORD if available
+run_sudo() {
+    if [[ -n "$SUDO_PASSWORD" ]]; then
+        echo "$SUDO_PASSWORD" | sudo -S "$@" 2>/dev/null
+    else
+        sudo "$@"
+    fi
+}
+
+# Refresh sudo timestamp - keeps sudo alive
+refresh_sudo() {
+    if [[ -n "$SUDO_PASSWORD" ]]; then
+        # Refresh sudo with password
+        if ! echo "$SUDO_PASSWORD" | sudo -S -v 2>/dev/null; then
+            # If refresh failed, try without suppressing errors
+            echo "$SUDO_PASSWORD" | sudo -S -v
+        fi
+    else
+        sudo -v 2>/dev/null || true
     fi
 }
 

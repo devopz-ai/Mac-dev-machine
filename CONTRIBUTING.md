@@ -1,5 +1,9 @@
 # Contributing to Mac Dev Machine
 
+**A project by [Devopz.ai](https://devopz.ai)** | Maintainer: [Rashed Ahmed](mailto:rashed.ahmed@devopz.ai)
+
+---
+
 First off, thank you for considering contributing to Mac Dev Machine! It's people like you that make this tool better for everyone.
 
 ## Table of Contents

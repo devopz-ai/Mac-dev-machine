@@ -1,5 +1,11 @@
 # Code of Conduct
 
+**Mac Dev Machine** - A project by [Devopz.ai](https://devopz.ai)
+
+Maintainer: Rashed Ahmed ([@rashed-ahmed](https://github.com/rashed-ahmed))
+
+---
+
 ## Our Pledge
 
 We as members, contributors, and leaders pledge to make participation in our
@@ -47,7 +53,7 @@ an individual is officially representing the community in public spaces.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement at
-[INSERT CONTACT EMAIL].
+**rashed.ahmed@devopz.ai**.
 
 All complaints will be reviewed and investigated promptly and fairly.
 

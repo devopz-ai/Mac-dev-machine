@@ -44,7 +44,13 @@ install_llm_frameworks() {
     install_pip "langchain" "LangChain"
     install_pip "langchain-community" "LangChain Community"
     install_pip "llama-index" "LlamaIndex"
-    install_pip "fabric-ai" "Fabric" || true
+
+    # Install Fabric (Daniel Miessler's AI tool) via Go
+    if command_exists go; then
+        log_step "Installing Fabric (AI patterns)..."
+        go install github.com/danielmiessler/fabric@latest 2>/dev/null || log_warning "Could not install Fabric"
+    fi
+
     log_success "LLM frameworks completed"
 }
 
@@ -74,8 +80,17 @@ install_api_tools() {
 # Install specialized AI tools
 install_specialized_ai() {
     log_step "Installing specialized AI tools..."
-    install_pip "openclaw" "OpenClaw" || true
-    install_pip "opencode-ai" "OpenCode" || true
+
+    # llama.cpp for local inference
+    install_formula "llama.cpp" "llama.cpp"
+
+    # Hugging Face CLI
+    install_formula "huggingface-cli" "Hugging Face CLI" || install_pip "huggingface-hub[cli]" "Hugging Face CLI"
+
+    # AI Image generation apps
+    install_cask "diffusionbee" "DiffusionBee" || true
+    install_cask "drawthings" "Draw Things" || true
+
     log_success "Specialized AI tools completed"
 }
 

@@ -52,7 +52,28 @@ install_homebrew() {
 
     log_step "Installing Homebrew..."
 
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    # For full automation, use NONINTERACTIVE mode
+    if [[ -n "$SUDO_PASSWORD" ]]; then
+        # Refresh sudo before Homebrew installation
+        echo "$SUDO_PASSWORD" | sudo -S -v 2>/dev/null
+
+        # Create askpass script for Homebrew to use
+        if [[ -z "$HOMEBREW_SUDO_ASKPASS" ]]; then
+            local askpass_script=$(mktemp)
+            chmod 700 "$askpass_script"
+            cat > "$askpass_script" << ASKPASS_EOF
+#!/bin/bash
+echo "$SUDO_PASSWORD"
+ASKPASS_EOF
+            export SUDO_ASKPASS="$askpass_script"
+            export HOMEBREW_SUDO_ASKPASS="$askpass_script"
+        fi
+
+        # Run Homebrew installer in non-interactive mode
+        NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    else
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
 
     # Add Homebrew to PATH for current session
     if [[ -d "/opt/homebrew" ]]; then

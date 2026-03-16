@@ -1,5 +1,6 @@
 # Mac Dev Machine Setup
 
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](VERSION)
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-12%2B-blue.svg)](https://www.apple.com/macos/)
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
@@ -16,6 +17,7 @@ A comprehensive automated setup for macOS development machines. This repository 
 - [User Configuration](#user-configuration)
 - [Update and Uninstall](#update-and-uninstall)
 - [What Gets Installed](#what-gets-installed)
+- [Usage Guides](#usage-guides) *(NEW)*
 - [Language Setup Guide](#language-setup-guide)
 - [Dotfiles Explained](#dotfiles-explained)
 - [Manual Installation](#manual-installation)
@@ -68,6 +70,27 @@ The installation will:
 ./install.sh --package standard --yes
 ```
 
+### Full Automation (No Prompts)
+
+For completely unattended installation (CI/CD, scripted deployments):
+
+```bash
+# Option 1: Environment variable (recommended - more secure)
+export SUDO_PASSWORD="your-password"
+./install.sh --package standard
+
+# Option 2: Command-line argument
+./install.sh --package standard --sudo-pass "your-password"
+```
+
+When `--sudo-pass` or `SUDO_PASSWORD` is provided:
+- Sudo credentials are cached at the start
+- All prompts are automatically accepted
+- Sudo is kept alive throughout the installation
+- No user interaction required
+
+**Security Note:** Passing passwords via command-line is visible in process lists. Environment variable method is more secure.
+
 ---
 
 ## Supported macOS Versions
@@ -99,6 +122,7 @@ Choose the package that fits your needs:
 | Git | Git, GitHub CLI |
 | CLI Tools | jq, bat, ripgrep, fzf, htop |
 | Browsers | Chrome, Firefox |
+| Virtualization | VirtualBox |
 
 ```bash
 ./install.sh --package light
@@ -115,7 +139,8 @@ Everything in Light, plus:
 | Editors | + Cursor, PyCharm CE |
 | Languages | + TypeScript, Go, Java, Rust |
 | Git | + GitLab CLI, lazygit, git-delta |
-| DevOps | Docker, kubectl, Helm, Terraform |
+| DevOps | Docker, kubectl, Helm, Terraform, Packer |
+| Virtualization | + Vagrant, Multipass |
 | CLI Tools | + yq, eza, fd, zoxide, wget, httpie |
 | Browsers | + Brave |
 | Databases | PostgreSQL, Redis, DBeaver |
@@ -136,11 +161,15 @@ Everything in Standard, plus:
 | Editors | + IntelliJ, JetBrains Toolbox, Zed, Sublime |
 | Languages | + Ruby, Bun, Deno |
 | DevOps | + k9s, Minikube, Kind, Ansible, AWS/Azure/GCP CLIs |
+| Virtualization | + UTM, QEMU, Lima, Colima, Podman |
 | Network | Wireshark, nmap, ngrok, mitmproxy |
-| AI Tools | Ollama, LM Studio, GPT4All, Aider, LiteLLM, OpenClaw |
+| AI/ML Local | Ollama, LM Studio, GPT4All, Jan, llama.cpp |
+| AI/ML Dev | Aider, LangChain, LlamaIndex, Hugging Face CLI |
+| AI Image | DiffusionBee, Draw Things |
+| Vector DBs | Qdrant, Milvus, ChromaDB |
 | Databases | + MySQL, MongoDB, TablePlus |
 | Communication | + WhatsApp, Telegram, Teams |
-| Apps | + Raycast, Notion, Obsidian, Figma, VLC |
+| Apps | + Raycast, Notion, Obsidian, VLC |
 
 ```bash
 ./install.sh --package advanced
@@ -304,14 +333,42 @@ See [Language Setup Guide](#language-setup-guide) for detailed explanations.
 - **kubectl** - Kubernetes CLI
 - **Helm** - Kubernetes package manager
 - **Terraform** - Infrastructure as Code
+- **Packer** - Machine image builder
 - **AWS/Azure/GCP CLIs** - Cloud provider tools
 
-### AI & LLM Tools
-- **Claude Code** - Anthropic's AI coding assistant
-- **Ollama** - Run LLMs locally
-- **LiteLLM** - LLM proxy for multiple providers
-- **OpenClaw** - AI legal/contract analysis
+### Virtualization
+- **VirtualBox** - Open source VM hypervisor (all tiers)
+- **Vagrant** - VM provisioning and management
+- **Multipass** - Quick Ubuntu VMs
+- **UTM** - Apple Silicon native VMs (QEMU-based)
+- **Lima** - Linux VMs for macOS
+- **Colima** - Container runtimes on macOS
+- **Podman** - Docker alternative
+
+### AI & LLM Tools (Apple Silicon Optimized)
+
+**Local LLM Runtime:**
+- **Ollama** - Run LLMs locally with Metal acceleration
+- **LM Studio** - GUI for local LLMs
+- **GPT4All** - Offline LLMs
+- **Jan** - Local AI assistant
+- **llama.cpp** - Metal-accelerated inference
+
+**AI Development:**
 - **Aider** - AI pair programming
+- **Open Interpreter** - Natural language computer control
+- **LangChain/LlamaIndex** - LLM application frameworks
+- **Hugging Face CLI** - Model hub access
+- **LiteLLM** - Unified LLM API
+
+**AI Image Generation:**
+- **DiffusionBee** - Stable Diffusion for Mac
+- **Draw Things** - Native AI image generation
+
+**Vector Databases:**
+- **Qdrant** - Vector similarity search
+- **Milvus** - Scalable vector DB
+- **ChromaDB** - Embedding database (pip)
 
 ### Browsers
 - **Google Chrome** - Primary browser
@@ -325,6 +382,31 @@ See [Language Setup Guide](#language-setup-guide) for detailed explanations.
 - **Discord** - Community chat
 - **WhatsApp** - Personal messaging
 - **Zoom** - Video conferencing
+
+---
+
+## Usage Guides
+
+Detailed guides for using installed tools are available in the [`docs/`](docs/) folder:
+
+| Guide | Description |
+|-------|-------------|
+| [Getting Started](docs/getting-started.md) | First steps after installation |
+| [Tool Combinations](docs/tool-combinations.md) | Which tools work together |
+| [AI Agent Guide](docs/ai-agent-guide.md) | For AI assistants (Claude, GPT, etc.) |
+
+### Use Case Guides
+
+| Use Case | Guide |
+|----------|-------|
+| Web Development | [docs/use-cases/web-development.md](docs/use-cases/web-development.md) |
+| DevOps & Infrastructure | [docs/use-cases/devops.md](docs/use-cases/devops.md) |
+| AI/ML Development | [docs/use-cases/ai-ml.md](docs/use-cases/ai-ml.md) |
+| API Development | [docs/use-cases/api-development.md](docs/use-cases/api-development.md) |
+| Data Engineering | [docs/use-cases/data-engineering.md](docs/use-cases/data-engineering.md) |
+| Mobile Development | [docs/use-cases/mobile-development.md](docs/use-cases/mobile-development.md) |
+| Security Testing | [docs/use-cases/security-testing.md](docs/use-cases/security-testing.md) |
+| Virtualization | [docs/use-cases/virtualization.md](docs/use-cases/virtualization.md) |
 
 ---
 
@@ -905,6 +987,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 ## License
 
 MIT License - Feel free to use, modify, and distribute. See [LICENSE](LICENSE) for details.
+
+**Copyright (c) 2024-2026 [Devopz.ai](https://devopz.ai)**
+
+**Author:** Rashed Ahmed ([@rashed-ahmed](https://github.com/rashed-ahmed)) - [rashed.ahmed@devopz.ai](mailto:rashed.ahmed@devopz.ai)
 
 ---
 

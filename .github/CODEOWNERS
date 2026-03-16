@@ -1,0 +1,28 @@
+# CODEOWNERS - Mac Dev Machine
+# https://github.com/devopz-ai/Mac-dev-machine
+#
+# Copyright (c) 2024-2026 Devopz.ai
+# Author: Rashed Ahmed <rashed.ahmed@devopz.ai>
+#
+# These owners will be requested for review when someone opens a pull request.
+
+# Global owners - will be requested for review on all changes
+*       @devopz-ai @rashed-ahmed
+
+# Core scripts
+/*.sh   @devopz-ai @rashed-ahmed
+
+# Library functions
+/lib/   @devopz-ai @rashed-ahmed
+
+# Module installers
+/modules/   @devopz-ai @rashed-ahmed
+
+# Configuration
+/config/    @devopz-ai @rashed-ahmed
+
+# Tests
+/tests/     @devopz-ai @rashed-ahmed
+
+# Documentation
+/docs/      @devopz-ai @rashed-ahmed

@@ -1,7 +1,11 @@
 #!/bin/bash
 #
-# Scan and record currently installed packages
-# Run this to generate state file from existing installations
+# Mac Dev Machine - Scan Installed Packages
+# Scans and records currently installed packages
+#
+# Copyright (c) 2024-2026 Devopz.ai
+# Author: Rashed Ahmed <rashed.ahmed@devopz.ai>
+# License: MIT
 #
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -71,6 +75,47 @@ clear_state() {
     fi
 }
 
+# Draw progress bar
+# Usage: draw_progress current total width label elapsed
+draw_progress() {
+    local current=$1
+    local total=$2
+    local width=${3:-40}
+    local label="${4:-}"
+    local elapsed="${5:-0}"
+
+    local percent=$((current * 100 / total))
+    local filled=$((current * width / total))
+    local empty=$((width - filled))
+
+    # Build the progress bar
+    local bar=""
+    for ((i=0; i<filled; i++)); do bar+="█"; done
+    for ((i=0; i<empty; i++)); do bar+="░"; done
+
+    # Format elapsed time
+    local time_str=""
+    if [[ $elapsed -gt 0 ]]; then
+        local mins=$((elapsed / 60))
+        local secs=$((elapsed % 60))
+        if [[ $mins -gt 0 ]]; then
+            time_str="${mins}m ${secs}s"
+        else
+            time_str="${secs}s"
+        fi
+    fi
+
+    # Truncate label if too long
+    local max_label=20
+    if [[ ${#label} -gt $max_label ]]; then
+        label="${label:0:$((max_label-3))}..."
+    fi
+
+    # Print progress bar (overwrite line)
+    printf "\r  ${CYAN}[${bar}]${NC} %3d%% (%d/%d) ${BLUE}%-20s${NC} ${YELLOW}%s${NC}    " \
+        "$percent" "$current" "$total" "$label" "$time_str"
+}
+
 # Run scan
 run_scan() {
     log_section "Scanning installed packages..."
@@ -81,15 +126,17 @@ run_scan() {
     # Clear existing state
     > "$STATE_FILE"
 
+    local start_time=$(date +%s)
+
     # Known formulas we install
     local FORMULAS=(
-        "git" "gh" "git-lfs" "lazygit"
+        "git" "gh" "git-lfs" "lazygit" "glab" "git-delta" "tig" "git-flow"
         "wget" "curl" "httpie"
         "jq" "yq" "fx"
         "fzf" "ripgrep" "fd" "bat" "eza" "zoxide"
         "tree" "htop" "btop" "ncdu"
         "tmux" "neovim" "starship"
-        "tldr" "thefuck"
+        "tldr" "thefuck" "shellcheck"
         "pyenv" "pyenv-virtualenv"
         "nvm"
         "go" "rustup-init"
@@ -97,15 +144,19 @@ run_scan() {
         "maven" "gradle"
         "docker" "docker-compose" "docker-buildx"
         "kubectl" "kubectx" "k9s" "helm" "minikube" "kind"
-        "terraform" "terragrunt" "tfenv" "tflint"
-        "pulumi" "ansible"
+        "terraform" "terragrunt" "tfenv" "tflint" "packer"
+        "pulumi" "ansible" "trivy"
         "awscli" "azure-cli"
         "postgresql@16" "mysql" "redis" "sqlite"
         "ffmpeg" "imagemagick"
-        "ollama"
         "chromedriver" "geckodriver"
         "openssl" "readline" "sqlite3" "xz" "zlib" "tcl-tk"
         "bun" "deno"
+        "telnet" "nmap" "mtr" "mitmproxy" "mkcert"
+        # Virtualization
+        "vagrant" "qemu" "lima" "colima" "podman"
+        # AI/ML Tools
+        "ollama" "llama.cpp" "huggingface-cli" "qdrant" "milvus"
     )
 
     # Known casks we install
@@ -123,7 +174,6 @@ run_scan() {
         "temurin"
         "slack" "discord" "zoom" "microsoft-teams"
         "telegram" "whatsapp" "signal"
-        "lm-studio" "gpt4all" "jan" "msty"
         "dbeaver-community" "tableplus" "mongodb-compass" "pgadmin4"
         "rectangle" "raycast" "alfred"
         "notion" "obsidian"
@@ -132,72 +182,129 @@ run_scan() {
         "vlc" "bitwarden" "keepassxc"
         "stats" "hiddenbar" "monitorcontrol"
         "wireshark" "ngrok"
+        # Virtualization
+        "virtualbox" "utm" "multipass"
+        # AI/ML Tools
+        "lm-studio" "gpt4all" "jan" "msty" "diffusionbee" "drawthings"
     )
 
-    log_step "Scanning Homebrew formulas..."
-    local count=0
+    # NPM packages
+    local NPM_PACKAGES=(
+        "typescript" "ts-node" "yarn" "pnpm" "npm-check-updates"
+        "playwright" "puppeteer" "web-ext" "@anthropic-ai/claude-code"
+    )
+
+    # PIP packages
+    local PIP_PACKAGES=(
+        "pipx" "poetry" "black" "flake8" "mypy" "pytest" "ipython"
+        "aider-chat" "open-interpreter" "shell-gpt"
+        "litellm" "langchain" "langchain-community" "llama-index"
+        "numpy" "pandas" "scipy" "scikit-learn" "torch" "transformers"
+        "matplotlib" "jupyterlab"
+        "openai" "anthropic" "google-generativeai"
+        "chromadb" "pinecone-client"
+        "selenium" "mycli" "pgcli" "litecli"
+    )
+
+    # Calculate totals
+    local total_formulas=${#FORMULAS[@]}
+    local total_casks=${#CASKS[@]}
+    local total_npm=${#NPM_PACKAGES[@]}
+    local total_pip=${#PIP_PACKAGES[@]}
+    local grand_total=$((total_formulas + total_casks + total_npm + total_pip))
+
+    echo ""
+    echo -e "  ${CYAN}Scanning $total_formulas formulas, $total_casks casks, $total_npm npm, $total_pip pip packages...${NC}"
+    echo ""
+
+    local current=0
+    local found_formulas=0
+    local found_casks=0
+    local found_npm=0
+    local found_pip=0
+
+    # Scan formulas
     for formula in "${FORMULAS[@]}"; do
+        ((current++))
+        local elapsed=$(( $(date +%s) - start_time ))
+        draw_progress $current $grand_total 40 "$formula" $elapsed
+
         if brew list "$formula" &>/dev/null; then
             echo "formula|${formula}|${formula}|$(date +%Y-%m-%d_%H:%M:%S)" >> "$STATE_FILE"
-            ((count++))
+            ((found_formulas++))
         fi
     done
-    log_success "Found $count formulas"
 
-    log_step "Scanning Homebrew casks..."
-    count=0
+    # Scan casks
     for cask in "${CASKS[@]}"; do
+        ((current++))
+        local elapsed=$(( $(date +%s) - start_time ))
+        draw_progress $current $grand_total 40 "$cask" $elapsed
+
         if brew list --cask "$cask" &>/dev/null; then
             echo "cask|${cask}|${cask}|$(date +%Y-%m-%d_%H:%M:%S)" >> "$STATE_FILE"
-            ((count++))
+            ((found_casks++))
         fi
     done
-    log_success "Found $count casks"
 
-    log_step "Scanning npm global packages..."
-    count=0
+    # Scan npm packages
     if command -v npm &>/dev/null; then
-        local NPM_PACKAGES=("typescript" "ts-node" "yarn" "pnpm" "npm-check-updates" "playwright" "puppeteer" "web-ext" "@anthropic-ai/claude-code")
         for pkg in "${NPM_PACKAGES[@]}"; do
+            ((current++))
+            local elapsed=$(( $(date +%s) - start_time ))
+            draw_progress $current $grand_total 40 "$pkg" $elapsed
+
             if npm list -g "$pkg" &>/dev/null 2>&1; then
                 echo "npm|${pkg}|${pkg}|$(date +%Y-%m-%d_%H:%M:%S)" >> "$STATE_FILE"
-                ((count++))
+                ((found_npm++))
             fi
         done
+    else
+        current=$((current + total_npm))
     fi
-    log_success "Found $count npm packages"
 
-    log_step "Scanning pip packages..."
-    count=0
+    # Scan pip packages
     if command -v pip3 &>/dev/null || command -v pip &>/dev/null; then
         local pip_cmd="pip3"
         command -v pip3 &>/dev/null || pip_cmd="pip"
 
-        local PIP_PACKAGES=(
-            "pipx" "poetry" "black" "flake8" "mypy" "pytest" "ipython"
-            "aider-chat" "open-interpreter" "shell-gpt"
-            "litellm" "langchain" "langchain-community" "llama-index"
-            "numpy" "pandas" "scipy" "scikit-learn" "torch" "transformers"
-            "matplotlib" "jupyterlab"
-            "openai" "anthropic" "google-generativeai"
-            "chromadb" "pinecone-client"
-            "selenium" "mycli" "pgcli" "litecli"
-        )
         for pkg in "${PIP_PACKAGES[@]}"; do
+            ((current++))
+            local elapsed=$(( $(date +%s) - start_time ))
+            draw_progress $current $grand_total 40 "$pkg" $elapsed
+
             if $pip_cmd show "$pkg" &>/dev/null 2>&1; then
                 echo "pip|${pkg}|${pkg}|$(date +%Y-%m-%d_%H:%M:%S)" >> "$STATE_FILE"
-                ((count++))
+                ((found_pip++))
             fi
         done
+    else
+        current=$((current + total_pip))
     fi
-    log_success "Found $count pip packages"
 
+    # Final summary
+    local total_elapsed=$(( $(date +%s) - start_time ))
     echo ""
+    echo ""
+
     log_section "Scan Complete"
 
     local total=$(wc -l < "$STATE_FILE" | tr -d ' ')
-    log_success "Total packages recorded: $total"
-    log_info "State file: $STATE_FILE"
+
+    echo ""
+    echo -e "  ${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${GREEN}  SCAN RESULTS${NC}"
+    echo -e "  ${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "    Formulas found:  ${GREEN}$found_formulas${NC} / $total_formulas"
+    echo -e "    Casks found:     ${GREEN}$found_casks${NC} / $total_casks"
+    echo -e "    NPM found:       ${GREEN}$found_npm${NC} / $total_npm"
+    echo -e "    Pip found:       ${GREEN}$found_pip${NC} / $total_pip"
+    echo -e "    ─────────────────────────"
+    echo -e "    ${CYAN}Total recorded:${NC}  ${GREEN}$total${NC} packages"
+    echo ""
+    echo -e "    ${BLUE}Time elapsed:${NC}    ${total_elapsed}s"
+    echo -e "    ${BLUE}State file:${NC}      $STATE_FILE"
     echo ""
     log_info "You can now use ./uninstall.sh to manage these packages"
 }
